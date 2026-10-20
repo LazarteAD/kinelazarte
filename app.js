@@ -8,9 +8,6 @@ let fichasMap = {};
 let vistaActual = 'pacientes', modoConsulta = false, editando = false, claveActual = null, filtroPac = 'activos', tabActual = 'hoy';
 const VISTAS = ['pacientes', 'nuevo', 'consulta', 'paciente', 'mas'];
 
-// Variables del Cronómetro
-let timerInterval = null, timerSeconds = 0;
-
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
 function numONull(v) { if (v === '' || v === null || v === undefined) return null; const n = +v; return isNaN(n) ? null : n; }
@@ -21,17 +18,6 @@ function toast(m, isError) {
   const t = document.getElementById('toast'); if (!t) return;
   t.textContent = m; t.className = 'toast show' + (isError ? ' error' : '');
   clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast'; }, 3000);
-}
-
-function confeti(n) {
-  const em = ['🎉', '✨', '💪', '🌟', '🎊', '🏆'], box = document.createElement('div');
-  box.className = 'confeti'; box.setAttribute('aria-hidden', 'true');
-  for (let i = 0; i < (n || 26); i++) {
-    const s = document.createElement('span'); s.textContent = em[i % em.length];
-    s.style.left = (Math.random() * 100) + 'vw'; s.style.animationDelay = (Math.random() * .5) + 's';
-    box.appendChild(s);
-  }
-  document.body.appendChild(box); setTimeout(() => box.remove(), 3000);
 }
 
 function kPac() { return 'kine_pacientes_' + (PROF ? PROF.hash.slice(0, 16) : 'sin'); }
@@ -204,7 +190,8 @@ function pintarHistorial() {
   if (!casos.length) { cont.innerHTML = '<div class="vacio" style="text-align:center; padding:40px; color:#666;"><b>No hay pacientes aún.</b><br><br>Toca el botón + para agregar uno.</div>'; return; }
   cont.innerHTML = casos.map(x => {
     const d = DB[x.p.patologia] || {nombre: x.p.patologia};
-    return '<div class="pcard" onclick="abrirPaciente(\'' + x.clave + '\')"><div class="pc-top"><div class="pc-id"><div class="av">👤</div><div><div class="pc-nom">' + esc(x.p.idPaciente) + '</div><div class="pc-dx">' + esc(d.nombre) + '</div></div></div>' +
+    const alertas = (x.p.rojas && x.p.rojas.length) ? '<span style="color:red; font-size:12px; font-weight:bold;">⚠ Banderas rojas</span>' : '';
+    return '<div class="pcard" onclick="abrirPaciente(\'' + x.clave + '\')"><div class="pc-top"><div class="pc-id"><div class="av">👤</div><div><div class="pc-nom">' + esc(x.p.idPaciente) + ' ' + alertas + '</div><div class="pc-dx">' + esc(d.nombre) + '</div></div></div>' +
       '<div class="pc-side" style="font-size:12px; font-weight:bold; color:var(--primary);">' + x.ult + '/10</div></div>' +
       '<div class="prog" style="height:6px; background:#eee; border-radius:3px; margin-top:10px; overflow:hidden;"><i style="display:block; height:100%; background:var(--primary); width:' + (x.ult * 10) + '%"></i></div></div>';
   }).join('');
@@ -216,6 +203,7 @@ function limpiarForm() {
   document.getElementById('wizardPaso1').hidden = false; document.getElementById('wizardPaso2').hidden = true;
   const sel = document.getElementById('patologia'); if(sel) sel.value = '';
   const sug = document.getElementById('sugerencias'); if(sug) sug.innerHTML = '';
+  document.querySelectorAll('.check-row input').forEach(i => i.checked = false);
 }
 
 function poblarSelects() {
@@ -254,12 +242,19 @@ document.getElementById('wizardSiguiente')?.addEventListener('click', () => {
 });
 document.getElementById('wizardAtras')?.addEventListener('click', () => { document.getElementById('wizardPaso1').hidden = false; document.getElementById('wizardPaso2').hidden = true; });
 
+// --- GUARDAR PACIENTE (AHORA GUARDA COMORBILIDADES Y BANDERAS) ---
 document.getElementById('guardar')?.addEventListener('click', () => {
   const btn = document.getElementById('guardar');
   btn.disabled = true; btn.textContent = 'Guardando...';
   const id = document.getElementById('idPaciente').value.trim(), pat = document.getElementById('patologia').value;
-  const p = conPerfil({ idPaciente: id, patologia: pat, fecha: new Date().toISOString(), estado: 'activo' });
+  
+  const comorb = [...document.querySelectorAll('#comorb input:checked')].map(i => i.value);
+  const rojas = [...document.querySelectorAll('#rojas input:checked')].map(i => i.value);
+  const medic = [...document.querySelectorAll('#medic input:checked')].map(i => i.value);
+
+  const p = conPerfil({ idPaciente: id, patologia: pat, fecha: new Date().toISOString(), estado: 'activo', comorb, rojas, medic });
   const arr = leerPacientesLS(); arr.unshift(p); escribirPacientesLS(arr); ultimoHistorial.unshift(p); reconstruirMapa();
+  
   enviarOEncolar(p).then(() => {
     toast('Paciente guardado ✓'); 
     abrirPaciente(claveP(id, pat));
@@ -268,31 +263,21 @@ document.getElementById('guardar')?.addEventListener('click', () => {
 });
 
 window.abrirPaciente = function(clave) {
-  if(timerInterval) { clearInterval(timerInterval); timerInterval = null; timerSeconds = 0; }
   claveActual = clave; const p = fichasMap[clave]; if (!p) return;
   document.getElementById('idPaciente').value = p.idPaciente; document.getElementById('patologia').value = p.patologia;
   renderPaciente('hoy'); irVista('paciente');
 };
 
-// --- CRONÓMETRO ---
-window.toggleTimer = function() {
-    const btn = document.getElementById('btnTimer');
-    const display = document.getElementById('cronometro');
-    if (timerInterval) {
-        clearInterval(timerInterval); timerInterval = null; btn.textContent = 'Reanudar';
-    } else {
-        btn.textContent = 'Pausar';
-        timerInterval = setInterval(() => {
-            timerSeconds++;
-            const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
-            const s = (timerSeconds % 60).toString().padStart(2, '0');
-            if(display) display.textContent = m + ':' + s;
-            if(timerSeconds === 2700) { toast('⏰ Han pasado 45 minutos.'); }
-        }, 1000);
-    }
-};
+// --- EVALUAR CONTRAINDICACIONES ---
+function checkAgente(agenteKey, paciente) {
+    const ag = AGENTES[agenteKey]; if(!ag) return { bloqueado: false, motivo: '' };
+    if(ag.redC && ag.redC.some(c => (paciente.comorb || []).includes(c))) return { bloqueado: true, motivo: 'Contraindicado por comorbilidad del paciente.' };
+    if(ag.redM && ag.redM.some(m => (paciente.medic || []).includes(m))) return { bloqueado: true, motivo: 'Contraindicado por medicación del paciente.' };
+    if(ag.redF && ag.redF.some(f => (paciente.rojas || []).includes(f))) return { bloqueado: true, motivo: 'Contraindicado por bandera roja.' };
+    return { bloqueado: false, motivo: '' };
+}
 
-// --- RENDERIZADO COMPLETO (AGENTES Y CRONÓMETRO) ---
+// --- RENDERIZADO COMPLETO ---
 function renderPaciente(tab) {
   const p = fichasMap[claveActual]; if (!p) return;
   const d = DB[p.patologia] || {nombre:p.patologia, agentes: []};
@@ -306,17 +291,9 @@ function renderPaciente(tab) {
   // HOY
   let hHoy = '<div class="card"><h2>Sesión ' + n + ' de 10</h2>';
   
-  const min = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
-  const sec = (timerSeconds % 60).toString().padStart(2, '0');
-  hHoy += `<div style="display:flex; justify-content:space-between; align-items:center; background:var(--primary-soft); padding:10px; border-radius:8px; margin-bottom:15px;">
-      <span style="font-weight:bold; color:var(--primary); font-size:13px;">⏱️ 40-60 min</span>
-      <span id="cronometro" style="font-family:monospace; font-size:18px; font-weight:bold; color:var(--primary);">${min}:${sec}</span>
-      <button type="button" onclick="toggleTimer()" id="btnTimer" style="padding:5px 10px; border-radius:5px; border:none; background:var(--primary); color:#fff; font-size:12px; cursor:pointer;">${timerInterval ? 'Pausar' : (timerSeconds > 0 ? 'Reanudar' : 'Iniciar')}</button>
-  </div>`;
-
   hHoy += '<p style="font-size:13px; color:#666; margin-bottom:15px;"><b>Fase:</b> ' + meta.fase + ' | <b>Dosis:</b> ' + meta.dosis + '</p>';
   
-  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-bottom:10px;">1. Ejercicios</h3>';
+  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-bottom:10px;">1. Ejercicios de la sesión</h3>';
   meta.plan.forEach((item, idx) => {
     const tipo = item[0]; const arr = (d[tipo] && d[tipo].length) ? d[tipo] : [FILLER[tipo]];
     const ej = arr[item[1] % arr.length];
@@ -330,18 +307,43 @@ function renderPaciente(tab) {
     </label>`;
   });
 
-  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-top:20px; margin-bottom:10px;">2. Agentes Físicos</h3>';
+  // AGREGAR EJERCICIOS SUGERIDOS
+  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-top:20px; margin-bottom:10px;">2. Agregar otro ejercicio</h3>';
+  let sugeridos = [...(d.mov || []), ...(d.control || []), ...(d.fuerza || []), ...(d.funcional || [])];
+  let opciones = sugeridos.map(e => `<option value="${esc(e)}">${esc(e.split(',')[0])}</option>`).join('');
+  
+  hHoy += `<div style="display:flex; gap:8px; margin-bottom:10px;">
+      <select id="selSugerido" style="flex:1; padding:10px; font-size:14px; border-radius:6px; border:1px solid #ccc;">
+          <option value="">— Seleccionar ejercicio sugerido —</option>
+          ${opciones}
+      </select>
+      <button type="button" onclick="agregarSugerido()" class="btn-sec" style="width:auto; padding:0 15px; margin:0; font-size:20px;">+</button>
+  </div>`;
+  
+  hHoy += '<div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="manualEjercicio" placeholder="O escribir uno manual..." style="flex:1; font-size:14px;"><button type="button" onclick="agregarManual()" class="btn-sec" style="width:auto; padding:0 15px; margin:0; font-size:20px;">+</button></div>';
+  hHoy += '<div id="listaManuales"></div>';
+
+  // AGENTES FÍSICOS CON ALERTAS
+  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-top:20px; margin-bottom:10px;">3. Agentes Físicos</h3>';
   if (d.agentes && d.agentes.length && typeof AGENTES !== 'undefined') {
       d.agentes.forEach(a => { 
           const ag = AGENTES[a];
-          if(ag) hHoy += `<label class="chk-item"><input type="checkbox" class="chk-agente" value="${esc(ag.n)}" checked><div class="chk-box"></div><div class="chk-text"><b>${ag.n}</b><br><span style="font-size:12px; color:#666;">${ag.d}</span></div></label>`; 
+          if(ag) {
+              const check = checkAgente(a, p);
+              const color = check.bloqueado ? 'var(--danger)' : 'var(--primary)';
+              const bg = check.bloqueado ? 'var(--danger-soft)' : 'var(--paper)';
+              const disabled = check.bloqueado ? 'disabled' : 'checked';
+              const alerta = check.bloqueado ? `<br><span style="font-size:11px; color:var(--danger); font-weight:bold;">⚠ ${check.motivo}</span>` : '';
+              hHoy += `<label class="chk-item" style="background:${bg}; border:1px solid ${check.bloqueado ? 'var(--danger)' : 'transparent'};">
+                  <input type="checkbox" class="chk-agente" value="${esc(ag.n)}" ${disabled}>
+                  <div class="chk-box" style="border-color:${color}"></div>
+                  <div class="chk-text"><b style="color:${color}">${ag.n}</b><br><span style="font-size:12px; color:#666;">${ag.d}</span>${alerta}</div>
+              </label>`;
+          }
       });
   } else { hHoy += '<p class="sub">No hay agentes específicos.</p>'; }
 
-  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-top:20px; margin-bottom:10px;">3. Otros (Manual)</h3>';
-  hHoy += '<div style="display:flex; gap:8px; margin-bottom:10px;"><input type="text" id="manualEjercicio" placeholder="Agregar ejercicio o nota..." style="flex:1; font-size:14px;"><button type="button" onclick="agregarManual()" class="btn-sec" style="width:auto; padding:0 15px; margin:0; font-size:20px;">+</button></div>';
-  hHoy += '<div id="listaManuales"></div>';
-
+  // DOLOR (EVA)
   hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-top:20px; margin-bottom:10px;">4. Dolor (EVA)</h3>';
   hHoy += '<div class="grid2"><div class="eva-container"><label style="text-align:center;">Reposo</label><div class="eva-value" id="valReposo" style="color:var(--success)">0</div><input type="range" id="evaReposo" min="0" max="10" value="0" class="eva-slider" oninput="updateEva('Reposo', this.value)"></div>';
   hHoy += '<div class="eva-container"><label style="text-align:center;">Movimiento</label><div class="eva-value" id="valMovimiento" style="color:var(--success)">0</div><input type="range" id="evaMovimiento" min="0" max="10" value="0" class="eva-slider" oninput="updateEva('Movimiento', this.value)"></div></div>';
@@ -351,16 +353,14 @@ function renderPaciente(tab) {
   
   document.getElementById('tabHoy').innerHTML = hHoy;
 
-  // EVALUACIÓN
+  // EVALUACIÓN (Con alertas de seguridad)
   let hEval = '<div class="card"><h2>Test Principal</h2><p style="font-size:15px;"><b>' + (d.testN || '-') + '</b><br><span class="sub">' + (d.testD || '') + '</span></p>';
   hEval += '<a href="https://www.youtube.com/results?search_query=test+kinesiologia+' + encodeURIComponent(d.testN) + '" target="_blank" class="btn-sec" style="display:block; margin-top:15px; text-decoration:none;">▶ Ver video del test</a></div>';
   
-  if(d.aviso) hEval += '<div class="card" style="border-left-color:#b91c1c;"><h2 style="color:#b91c1c;">⚠ Precauciones</h2><p style="color:#b91c1c; font-size:14px;">' + d.aviso + '</p></div>';
+  if(d.aviso) hEval += '<div class="card" style="border-left-color:#b91c1c;"><h2 style="color:#b91c1c;">⚠ Precauciones Generales</h2><p style="color:#b91c1c; font-size:14px;">' + d.aviso + '</p></div>';
 
-  if(d.agentes && d.agentes.length && typeof AGENTES !== 'undefined') {
-      hEval += '<div class="card"><h2>Agentes Físicos</h2>';
-      d.agentes.forEach(a => { const ag = AGENTES[a]; if(ag) hEval += `<div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;"><b style="color:var(--primary);">${ag.n}</b><br><span style="font-size:13px; color:#666;">${ag.d}</span></div>`; });
-      hEval += '</div>';
+  if(p.rojas && p.rojas.length) {
+      hEval += '<div class="card" style="border-left-color:var(--danger); background:var(--danger-soft);"><h2 style="color:var(--danger);">🚨 Banderas Rojas del Paciente</h2><p style="color:var(--danger); font-size:14px;">Este paciente tiene banderas rojas marcadas. Priorizar derivación médica y precaución extrema.</p></div>';
   }
   document.getElementById('tabEval').innerHTML = hEval;
 
@@ -381,7 +381,7 @@ function renderPaciente(tab) {
 
   // PLAN
   let hPlan = '<div class="card"><h2>Plan de 10 Sesiones</h2><ul style="padding-left:20px; line-height:1.8; font-size:14px;">';
-  SES_META.forEach((m, i) => { hPlan += `<li style="margin-bottom:8px;"><b>Sesión ${i+1}:</b> ${m.fase}</li>`; });
+  SES_META.forEach((m, i) => { hPlan += `<li style="margin-bottom:8px; ${i === n-1 ? 'color:var(--primary); font-weight:bold;' : ''}"><b>Sesión ${i+1}:</b> ${m.fase}</li>`; });
   hPlan += '</ul></div>';
   document.getElementById('tabPlan').innerHTML = hPlan;
 
@@ -408,12 +408,22 @@ window.updateEva = function(tipo, valor) {
     else el.style.color = 'var(--danger)';
 };
 
+window.agregarSugerido = function() {
+    const sel = document.getElementById('selSugerido');
+    const text = sel.value;
+    if(!text) return;
+    const div = document.createElement('div');
+    div.innerHTML = `<label class="chk-item"><input type="checkbox" class="chk-manual" value="${esc(text)}" checked><div class="chk-box"></div><div class="chk-text"><b>${esc(text.split(',')[0])}</b></div></label>`;
+    document.getElementById('listaManuales').appendChild(div);
+    sel.value = '';
+};
+
 window.agregarManual = function() {
     const input = document.getElementById('manualEjercicio');
     const text = input.value.trim();
     if(!text) return;
     const div = document.createElement('div');
-    div.innerHTML = `<label class="chk-item"><input type="checkbox" class="chk-manual" value="${esc(text)}" checked><div class="chk-box"></div><div class="chk-text">${esc(text)}</div></label>`;
+    div.innerHTML = `<label class="chk-item"><input type="checkbox" class="chk-manual" value="${esc(text)}" checked><div class="chk-box"></div><div class="chk-text"><b>${esc(text)}</b></div></label>`;
     document.getElementById('listaManuales').appendChild(div);
     input.value = ''; input.focus();
 };
@@ -437,15 +447,12 @@ window.guardarSesion = function(n) {
   
   enviarOEncolar(reg).then(() => {
       toast('Sesión ' + n + ' guardada ✓'); 
-      if(n === 10) confeti();
-      if(timerInterval) { clearInterval(timerInterval); timerInterval = null; timerSeconds = 0; }
       renderPaciente('hoy');
   });
 };
 
-// --- CONSULTA RÁPIDA (ARREGLADA) ---
+// --- CONSULTA RÁPIDA ---
 function abrirConsulta(k) {
-  if(timerInterval) { clearInterval(timerInterval); timerInterval = null; timerSeconds = 0; }
   const d = DB[k]; if(!d) return;
   
   document.getElementById('pacHeader').innerHTML = '<div class="ph-nom">Consulta Rápida</div><div class="ph-dx">' + esc(d.nombre) + '</div><button class="btn-sec" onclick="irVista(\'consulta\')" style="margin-top:10px; padding:8px;">← Volver a buscar</button>';
@@ -455,12 +462,6 @@ function abrirConsulta(k) {
   
   if(d.aviso) hEval += '<div class="card" style="border-left-color:#b91c1c;"><h2 style="color:#b91c1c;">⚠ Precauciones</h2><p style="color:#b91c1c; font-size:14px;">' + d.aviso + '</p></div>';
 
-  if(d.agentes && d.agentes.length && typeof AGENTES !== 'undefined') {
-      hEval += '<div class="card"><h2>Agentes Físicos</h2>';
-      d.agentes.forEach(a => { const ag = AGENTES[a]; if(ag) hEval += `<div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;"><b style="color:var(--primary);">${ag.n}</b><br><span style="font-size:13px; color:#666;">${ag.d}</span></div>`; });
-      hEval += '</div>';
-  }
-  
   document.getElementById('tabEval').innerHTML = hEval;
   ['hoy','evol','eval','plan','ref'].forEach(t => { const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) el.hidden = (t !== 'eval'); });
   document.querySelectorAll('#tabsPac .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === 'eval'));
@@ -470,10 +471,6 @@ function abrirConsulta(k) {
 document.querySelectorAll('#tabsPac .tab').forEach(b => b.addEventListener('click', () => renderPaciente(b.dataset.tab)));
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (typeof DB === 'undefined' || typeof AGENTES === 'undefined' || typeof ZONAS === 'undefined') {
-      document.body.innerHTML = '<div style="padding:20px; text-align:center; font-family:sans-serif;"><h1>Error de carga</h1><p>Faltan archivos de datos. Asegúrate de haber subido correctamente las carpetas <b>data/</b> con sus archivos .js.</p></div>';
-      return;
-  }
   poblarSelects();
   iniciarPerfil();
 });

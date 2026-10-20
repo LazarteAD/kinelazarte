@@ -1,3 +1,4 @@
+// ⚠️ IMPORTANTE: PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ ADENTRO DE LAS COMILLAS
 let SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw0wXt6wOG-J4Gg0nDoerkansRhu8fr5TX3Nr_AWkaCe5ZzLPH1SpJ6f0pwFF4VGNtx/exec"; 
 
 let PROF = null;
@@ -137,6 +138,7 @@ document.getElementById('login').addEventListener('click', function (e) {
   if (e.target.closest('#lgDemo')) activarPerfil({ nombre: 'Demo', hash: 'd0000000000000000000000000000000', demo: true });
 });
 
+// --- NAVEGACIÓN Y VISTAS ---
 function irVista(v, noHist) {
   vistaActual = v;
   VISTAS.forEach(x => { const el = document.getElementById('v-' + x); if (el) el.hidden = (x !== v); });
@@ -242,9 +244,10 @@ window.abrirPaciente = function(clave) {
   renderPaciente('hoy'); irVista('paciente');
 };
 
+// --- RENDERIZADO COMPLETO (CON AGENTES, MANUALES Y VIDEOS) ---
 function renderPaciente(tab) {
   const p = fichasMap[claveActual]; if (!p) return;
-  const d = DB[p.patologia] || {nombre:p.patologia};
+  const d = DB[p.patologia] || {nombre:p.patologia, agentes: []};
   const ss = sesionesDe(p.idPaciente, p.patologia);
   const ult = ss.length ? Math.max.apply(null, ss.map(s => s.sesion)) : 0;
   const n = Math.min(ult + 1, 10);
@@ -252,27 +255,42 @@ function renderPaciente(tab) {
 
   document.getElementById('pacHeader').innerHTML = '<div class="ph-nom">' + esc(p.idPaciente) + '</div><div class="ph-dx">' + esc(d.nombre) + '</div>';
 
-  // HOY
-  let hHoy = '<div class="card"><h2>Sesión ' + n + ' de 10</h2><p style="font-size:14px; color:#666;"><b>Fase:</b> ' + meta.fase + ' | <b>Dosis:</b> ' + meta.dosis + '</p><ul style="margin-bottom:20px; padding-left:20px; line-height:1.6;">';
+  // HOY (Ejercicios + Agentes + Campo Manual + Videos)
+  let hHoy = '<div class="card"><h2>Sesión ' + n + ' de 10</h2><p style="font-size:14px; color:#666;"><b>Fase:</b> ' + meta.fase + ' | <b>Dosis:</b> ' + meta.dosis + '</p>';
+  
+  hHoy += '<h3 style="font-size:15px; margin-top:15px; border-bottom:1px solid #eee; padding-bottom:5px;">1. Ejercicios</h3><ul style="margin-bottom:15px; padding-left:20px; line-height:1.6;">';
   meta.plan.forEach(item => {
     const tipo = item[0]; const arr = (d[tipo] && d[tipo].length) ? d[tipo] : [FILLER[tipo]];
     const ej = arr[item[1] % arr.length];
     hHoy += '<li style="margin-bottom:8px;"><label style="font-weight:normal; cursor:pointer; display:flex; align-items:start; gap:8px;"><input type="checkbox" class="chk-ejercicio" value="' + esc(ej) + '" checked style="margin-top:4px;"> <span>' + esc(ej) + '</span></label><a href="https://www.youtube.com/results?search_query=ejercicio+kinesiologia+' + encodeURIComponent(ej.split(',')[0]) + '" target="_blank" style="font-size:12px; color:#2a7ab0; margin-left:30px;">▶ Ver video de cómo hacerlo</a></li>';
   });
-  hHoy += '</ul><div class="grid2"><div><label>Dolor Reposo (0-10)</label><input type="number" id="evaReposo" min="0" max="10"></div><div><label>Dolor Movimiento (0-10)</label><input type="number" id="evaMovimiento" min="0" max="10"></div></div><label style="margin-top:10px;">Notas</label><textarea id="notaSesion" rows="2"></textarea><button class="btn-main" onclick="guardarSesion(' + n + ')" style="margin-top:15px;">Guardar Sesión</button></div>';
+  hHoy += '</ul>';
+  
+  hHoy += '<h3 style="font-size:15px; margin-top:15px; border-bottom:1px solid #eee; padding-bottom:5px;">2. Agentes Físicos</h3><ul style="margin-bottom:15px; padding-left:20px; line-height:1.6;">';
+  if (d.agentes && d.agentes.length && window.AGENTES) {
+      d.agentes.forEach(a => { if(AGENTES[a]) hHoy += '<li style="margin-bottom:8px;"><label style="font-weight:normal; cursor:pointer; display:flex; align-items:start; gap:8px;"><input type="checkbox" class="chk-agente" value="' + esc(AGENTES[a].n) + '" checked style="margin-top:4px;"> <span>' + AGENTES[a].n + '</span></label></li>'; });
+  } else {
+      hHoy += '<li>No hay agentes específicos para esta patología.</li>';
+  }
+  hHoy += '</ul>';
+
+  hHoy += '<h3 style="font-size:15px; margin-top:15px; border-bottom:1px solid #eee; padding-bottom:5px;">3. Agregar Ejercicio / Agente Manual</h3>';
+  hHoy += '<div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="manualEjercicio" placeholder="Escribir otro..." style="flex:1; padding:10px; font-size:14px;"><button type="button" onclick="agregarManual()" class="btn-sec" style="width:auto; padding:0 15px; margin:0;">＋</button></div>';
+  hHoy += '<ul id="listaManuales" style="margin-bottom:15px; padding-left:20px; line-height:1.6;"></ul>';
+
+  hHoy += '<h3 style="font-size:15px; margin-top:15px; border-bottom:1px solid #eee; padding-bottom:5px;">4. Evaluación de la Sesión</h3>';
+  hHoy += '<div class="grid2"><div><label>Dolor Reposo (0-10)</label><input type="number" id="evaReposo" min="0" max="10"></div><div><label>Dolor Movimiento (0-10)</label><input type="number" id="evaMovimiento" min="0" max="10"></div></div><label style="margin-top:10px;">Notas</label><textarea id="notaSesion" rows="2"></textarea><button class="btn-main" onclick="guardarSesion(' + n + ')" style="margin-top:15px;">Guardar Sesión</button></div>';
+  
   document.getElementById('tabHoy').innerHTML = hHoy;
 
-  // EVALUACION
-  let hEval = '<div class="card"><h2>Test Principal</h2><p><b>' + (d.testN || '-') + '</b><br>' + (d.testD || '') + '</p></div>';
+  // EVALUACIÓN (Test + Video + Precauciones)
+  let hEval = '<div class="card"><h2>Test Principal</h2><p><b>' + (d.testN || '-') + '</b><br>' + (d.testD || '') + '</p>';
+  hEval += '<a href="https://www.youtube.com/results?search_query=test+kinesiologia+' + encodeURIComponent(d.testN) + '" target="_blank" class="btn-sec" style="display:inline-block; margin-top:10px; text-decoration:none; text-align:center;">▶ Ver video de cómo se realiza el test</a></div>';
+  
   if(d.aviso) hEval += '<div class="card" style="border-left-color:#b91c1c;"><h2>⚠ Precauciones</h2><p style="color:#b91c1c;">' + d.aviso + '</p></div>';
-  if(d.agentes && d.agentes.length && window.AGENTES) {
-      hEval += '<div class="card"><h2>Agentes Físicos</h2>';
-      d.agentes.forEach(a => { if(AGENTES[a]) hEval += '<div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #eee;"><b>' + AGENTES[a].n + '</b><br><span style="font-size:13px; color:#666;">' + AGENTES[a].d + '</span></div>'; });
-      hEval += '</div>';
-  }
   document.getElementById('tabEval').innerHTML = hEval;
 
-  // EVOLUCION
+  // EVOLUCIÓN
   let hEvol = '<div class="card"><h2>Evolución del Dolor</h2>';
   if(!ss.length) hEvol += '<p class="sub">No hay sesiones registradas.</p>';
   else {
@@ -299,19 +317,39 @@ function renderPaciente(tab) {
   hRef += '</div>';
   document.getElementById('tabRef').innerHTML = hRef;
 
+  // CAMBIO DE PESTAÑAS
   document.querySelectorAll('#tabsPac .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   ['hoy','evol','eval','plan','ref'].forEach(t => { const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) el.hidden = (t !== tab); });
 }
+
+// --- AGREGAR EJERCICIO MANUAL Y GUARDAR ---
+window.agregarManual = function() {
+    const input = document.getElementById('manualEjercicio');
+    const text = input.value.trim();
+    if(!text) return;
+    const li = document.createElement('li');
+    li.style.marginBottom = '8px';
+    li.innerHTML = '<label style="font-weight:normal; cursor:pointer; display:flex; align-items:start; gap:8px;"><input type="checkbox" class="chk-manual" value="' + esc(text) + '" checked style="margin-top:4px;"> <span>' + esc(text) + '</span></label>';
+    document.getElementById('listaManuales').appendChild(li);
+    input.value = '';
+    input.focus();
+};
 
 window.guardarSesion = function(n) {
   const id = document.getElementById('idPaciente').value, pat = document.getElementById('patologia').value;
   const rep = numONull(document.getElementById('evaReposo').value), mov = numONull(document.getElementById('evaMovimiento').value);
   const notas = document.getElementById('notaSesion').value;
-  const hechos = [...document.querySelectorAll('.chk-ejercicio:checked')].map(i => i.value);
+  
+  const ejerciciosHechos = [...document.querySelectorAll('.chk-ejercicio:checked')].map(i => i.value);
+  const agentesHechos = [...document.querySelectorAll('.chk-agente:checked')].map(i => i.value);
+  const manualesHechos = [...document.querySelectorAll('.chk-manual:checked')].map(i => i.value);
+  const hechos = ejerciciosHechos.concat(agentesHechos, manualesHechos);
 
   const reg = conPerfil(normSesion({ idPaciente: id, patologia: pat, sesion: +n, fecha: new Date().toISOString(), evaReposo: rep, evaMovimiento: mov, notas: notas, hechos: hechos }));
   const arr = leerSesLS().filter(s => !(s.clave === reg.clave && s.sesion === reg.sesion)); arr.push(reg); escribirSesLS(arr);
-  sesionesCache = mezclarSesiones(sesionesCache, [reg]); enviarOEncolar(reg); toast('Sesión ' + n + ' guardada ✓'); renderPaciente('hoy');
+  sesionesCache = mezclarSesiones(sesionesCache, [reg]); enviarOEncolar(reg); 
+  toast('Sesión ' + n + ' guardada ✓'); 
+  renderPaciente('hoy');
 };
 
 function abrirConsulta(k) {

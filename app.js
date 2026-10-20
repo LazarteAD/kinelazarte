@@ -5,8 +5,11 @@ let PROF = null;
 let ultimoHistorial = [];
 let sesionesCache = [];
 let fichasMap = {};
-let vistaActual = 'pacientes', modoConsulta = false, editando = false, claveActual = null, filtroPac = 'activos', tabActual = 'hoy', recienGuardada = null;
+let vistaActual = 'pacientes', modoConsulta = false, editando = false, claveActual = null, filtroPac = 'activos', tabActual = 'hoy';
 const VISTAS = ['pacientes', 'nuevo', 'consulta', 'paciente', 'mas'];
+
+// Variables del Cronómetro
+let timerInterval = null, timerSeconds = 0;
 
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
@@ -17,7 +20,18 @@ function claveP(id, pat) { return norm(String(id || '').trim()) + '|' + pat; }
 function toast(m, isError) {
   const t = document.getElementById('toast'); if (!t) return;
   t.textContent = m; t.className = 'toast show' + (isError ? ' error' : '');
-  clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast'; }, 2800);
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+function confeti(n) {
+  const em = ['🎉', '✨', '💪', '🌟', '🎊', '🏆'], box = document.createElement('div');
+  box.className = 'confeti'; box.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < (n || 26); i++) {
+    const s = document.createElement('span'); s.textContent = em[i % em.length];
+    s.style.left = (Math.random() * 100) + 'vw'; s.style.animationDelay = (Math.random() * .5) + 's';
+    box.appendChild(s);
+  }
+  document.body.appendChild(box); setTimeout(() => box.remove(), 3000);
 }
 
 function kPac() { return 'kine_pacientes_' + (PROF ? PROF.hash.slice(0, 16) : 'sin'); }
@@ -64,7 +78,13 @@ async function enviarSheet(reg) {
   }
   return false;
 }
-async function enviarOEncolar(reg) { const ok = await enviarSheet(reg); if (!ok) { const c = colaLeer(); c.push(reg); colaEscribir(c.slice(-3000)); } return ok; }
+async function enviarOEncolar(reg) { 
+  pintarPendientes('enviando');
+  const ok = await enviarSheet(reg); 
+  if (!ok) { const c = colaLeer(); c.push(reg); colaEscribir(c.slice(-3000)); } 
+  else { pintarPendientes(); }
+  return ok; 
+}
 
 async function initLocal() {
   const status = document.getElementById('dbStatus');
@@ -83,14 +103,16 @@ async function initLocal() {
         if (sRem) sesionesCache = mezclarSesiones(leerSesLS(), sRem);
       }
       if (status) status.textContent = 'Sincronizado ✓';
-    } catch (e) { if (status) status.textContent = 'Modo local'; }
+      pintarPendientes();
+    } catch (e) { if (status) status.textContent = 'Modo offline'; pintarPendientes(); }
   } else { if (status) status.textContent = 'Falta configurar URL'; }
   pintarHistorial();
 }
 
-function pintarPendientes() {
+function pintarPendientes(estado) {
   const n = PROF ? colaLeer().length : 0, pill = document.getElementById('syncPill'), txt = document.getElementById('syncTxt');
   if (!pill || !txt) return;
+  if (estado === 'enviando') { pill.className = 'sync pending'; txt.textContent = 'Guardando...'; return; }
   if (n > 0) { pill.className = 'sync'; txt.textContent = '☁️ ' + n + ' sin enviar'; }
   else { pill.className = 'sync ok'; txt.textContent = 'Sincronizado'; }
 }
@@ -138,7 +160,7 @@ document.getElementById('login').addEventListener('click', function (e) {
   if (e.target.closest('#lgDemo')) activarPerfil({ nombre: 'Demo', hash: 'd0000000000000000000000000000000', demo: true });
 });
 
-// --- NAVEGACIÓN Y VISTAS ---
+// --- NAVEGACIÓN ---
 function irVista(v, noHist) {
   vistaActual = v;
   VISTAS.forEach(x => { const el = document.getElementById('v-' + x); if (el) el.hidden = (x !== v); });
@@ -179,16 +201,17 @@ function pintarHistorial() {
     return { clave: c, p: p, ss: ss, ult: ult, alta: p.estado === 'alta', t: new Date(p.fecha).getTime() };
   }).sort((a, b) => b.t - a.t);
 
-  if (!casos.length) { cont.innerHTML = '<div class="vacio"><b>No hay pacientes aún.</b></div>'; return; }
+  if (!casos.length) { cont.innerHTML = '<div class="vacio" style="text-align:center; padding:40px; color:#666;"><b>No hay pacientes aún.</b><br><br>Toca el botón + para agregar uno.</div>'; return; }
   cont.innerHTML = casos.map(x => {
     const d = DB[x.p.patologia] || {nombre: x.p.patologia};
-    return '<div class="pcard"><div class="pc-top"><div class="pc-id"><div class="av">👤</div><div><div class="pc-nom">' + esc(x.p.idPaciente) + '</div><div class="pc-dx">' + esc(d.nombre) + '</div></div></div></div>' +
-      '<div class="pc-btns"><button class="go" onclick="abrirPaciente(\'' + x.clave + '\')">Abrir Ficha</button></div></div>';
+    return '<div class="pcard" onclick="abrirPaciente(\'' + x.clave + '\')"><div class="pc-top"><div class="pc-id"><div class="av">👤</div><div><div class="pc-nom">' + esc(x.p.idPaciente) + '</div><div class="pc-dx">' + esc(d.nombre) + '</div></div></div>' +
+      '<div class="pc-side" style="font-size:12px; font-weight:bold; color:var(--primary);">' + x.ult + '/10</div></div>' +
+      '<div class="prog" style="height:6px; background:#eee; border-radius:3px; margin-top:10px; overflow:hidden;"><i style="display:block; height:100%; background:var(--primary); width:' + (x.ult * 10) + '%"></i></div></div>';
   }).join('');
 }
 
 function limpiarForm() {
-  ['idPaciente', 'edad', 'peso', 'altura', 'buscador'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
+  ['idPaciente', 'buscador'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
   document.getElementById('seleccionActual').textContent = 'Ninguna patología elegida';
   document.getElementById('wizardPaso1').hidden = false; document.getElementById('wizardPaso2').hidden = true;
   const sel = document.getElementById('patologia'); if(sel) sel.value = '';
@@ -232,19 +255,44 @@ document.getElementById('wizardSiguiente')?.addEventListener('click', () => {
 document.getElementById('wizardAtras')?.addEventListener('click', () => { document.getElementById('wizardPaso1').hidden = false; document.getElementById('wizardPaso2').hidden = true; });
 
 document.getElementById('guardar')?.addEventListener('click', () => {
+  const btn = document.getElementById('guardar');
+  btn.disabled = true; btn.textContent = 'Guardando...';
   const id = document.getElementById('idPaciente').value.trim(), pat = document.getElementById('patologia').value;
   const p = conPerfil({ idPaciente: id, patologia: pat, fecha: new Date().toISOString(), estado: 'activo' });
   const arr = leerPacientesLS(); arr.unshift(p); escribirPacientesLS(arr); ultimoHistorial.unshift(p); reconstruirMapa();
-  enviarOEncolar(p); toast('Paciente guardado ✓'); abrirPaciente(claveP(id, pat));
+  enviarOEncolar(p).then(() => {
+    toast('Paciente guardado ✓'); 
+    abrirPaciente(claveP(id, pat));
+    btn.disabled = false; btn.textContent = 'Guardar y abrir paciente';
+  });
 });
 
 window.abrirPaciente = function(clave) {
+  if(timerInterval) { clearInterval(timerInterval); timerInterval = null; timerSeconds = 0; }
   claveActual = clave; const p = fichasMap[clave]; if (!p) return;
   document.getElementById('idPaciente').value = p.idPaciente; document.getElementById('patologia').value = p.patologia;
   renderPaciente('hoy'); irVista('paciente');
 };
 
-// --- RENDERIZADO COMPLETO (CON AGENTES, MANUALES Y VIDEOS) ---
+// --- CRONÓMETRO ---
+window.toggleTimer = function() {
+    const btn = document.getElementById('btnTimer');
+    const display = document.getElementById('cronometro');
+    if (timerInterval) {
+        clearInterval(timerInterval); timerInterval = null; btn.textContent = 'Reanudar';
+    } else {
+        btn.textContent = 'Pausar';
+        timerInterval = setInterval(() => {
+            timerSeconds++;
+            const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+            const s = (timerSeconds % 60).toString().padStart(2, '0');
+            if(display) display.textContent = m + ':' + s;
+            if(timerSeconds === 2700) { toast('⏰ Han pasado 45 minutos.'); }
+        }, 1000);
+    }
+};
+
+// --- RENDERIZADO COMPLETO (AGENTES Y CRONÓMETRO) ---
 function renderPaciente(tab) {
   const p = fichasMap[claveActual]; if (!p) return;
   const d = DB[p.patologia] || {nombre:p.patologia, agentes: []};
@@ -255,107 +303,165 @@ function renderPaciente(tab) {
 
   document.getElementById('pacHeader').innerHTML = '<div class="ph-nom">' + esc(p.idPaciente) + '</div><div class="ph-dx">' + esc(d.nombre) + '</div>';
 
-  // HOY (Ejercicios + Agentes + Campo Manual + Videos)
-  let hHoy = '<div class="card"><h2>Sesión ' + n + ' de 10</h2><p style="font-size:14px; color:#666;"><b>Fase:</b> ' + meta.fase + ' | <b>Dosis:</b> ' + meta.dosis + '</p>';
+  // HOY
+  let hHoy = '<div class="card"><h2>Sesión ' + n + ' de 10</h2>';
   
-  hHoy += '<h3 style="font-size:15px; margin-top:15px; border-bottom:1px solid #eee; padding-bottom:5px;">1. Ejercicios</h3><ul style="margin-bottom:15px; padding-left:20px; line-height:1.6;">';
-  meta.plan.forEach(item => {
+  const min = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+  const sec = (timerSeconds % 60).toString().padStart(2, '0');
+  hHoy += `<div style="display:flex; justify-content:space-between; align-items:center; background:var(--primary-soft); padding:10px; border-radius:8px; margin-bottom:15px;">
+      <span style="font-weight:bold; color:var(--primary); font-size:13px;">⏱️ 40-60 min</span>
+      <span id="cronometro" style="font-family:monospace; font-size:18px; font-weight:bold; color:var(--primary);">${min}:${sec}</span>
+      <button type="button" onclick="toggleTimer()" id="btnTimer" style="padding:5px 10px; border-radius:5px; border:none; background:var(--primary); color:#fff; font-size:12px; cursor:pointer;">${timerInterval ? 'Pausar' : (timerSeconds > 0 ? 'Reanudar' : 'Iniciar')}</button>
+  </div>`;
+
+  hHoy += '<p style="font-size:13px; color:#666; margin-bottom:15px;"><b>Fase:</b> ' + meta.fase + ' | <b>Dosis:</b> ' + meta.dosis + '</p>';
+  
+  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-bottom:10px;">1. Ejercicios</h3>';
+  meta.plan.forEach((item, idx) => {
     const tipo = item[0]; const arr = (d[tipo] && d[tipo].length) ? d[tipo] : [FILLER[tipo]];
     const ej = arr[item[1] % arr.length];
-    hHoy += '<li style="margin-bottom:8px;"><label style="font-weight:normal; cursor:pointer; display:flex; align-items:start; gap:8px;"><input type="checkbox" class="chk-ejercicio" value="' + esc(ej) + '" checked style="margin-top:4px;"> <span>' + esc(ej) + '</span></label><a href="https://www.youtube.com/results?search_query=ejercicio+kinesiologia+' + encodeURIComponent(ej.split(',')[0]) + '" target="_blank" style="font-size:12px; color:#2a7ab0; margin-left:30px;">▶ Ver video de cómo hacerlo</a></li>';
+    hHoy += `<label class="chk-item">
+      <input type="checkbox" class="chk-ejercicio" value="${esc(ej)}" checked>
+      <div class="chk-box"></div>
+      <div class="chk-text">
+        <b>${esc(ej)}</b><br>
+        <a href="https://www.youtube.com/results?search_query=ejercicio+kinesiologia+${encodeURIComponent(ej.split(',')[0])}" target="_blank" style="font-size:12px; color:var(--accent); text-decoration:none; display:inline-block; margin-top:4px;">▶ Ver video</a>
+      </div>
+    </label>`;
   });
-  hHoy += '</ul>';
+
+  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-top:20px; margin-bottom:10px;">2. Agentes Físicos</h3>';
+  if (d.agentes && d.agentes.length && typeof AGENTES !== 'undefined') {
+      d.agentes.forEach(a => { 
+          const ag = AGENTES[a];
+          if(ag) hHoy += `<label class="chk-item"><input type="checkbox" class="chk-agente" value="${esc(ag.n)}" checked><div class="chk-box"></div><div class="chk-text"><b>${ag.n}</b><br><span style="font-size:12px; color:#666;">${ag.d}</span></div></label>`; 
+      });
+  } else { hHoy += '<p class="sub">No hay agentes específicos.</p>'; }
+
+  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-top:20px; margin-bottom:10px;">3. Otros (Manual)</h3>';
+  hHoy += '<div style="display:flex; gap:8px; margin-bottom:10px;"><input type="text" id="manualEjercicio" placeholder="Agregar ejercicio o nota..." style="flex:1; font-size:14px;"><button type="button" onclick="agregarManual()" class="btn-sec" style="width:auto; padding:0 15px; margin:0; font-size:20px;">+</button></div>';
+  hHoy += '<div id="listaManuales"></div>';
+
+  hHoy += '<h3 style="font-size:14px; color:var(--muted); margin-top:20px; margin-bottom:10px;">4. Dolor (EVA)</h3>';
+  hHoy += '<div class="grid2"><div class="eva-container"><label style="text-align:center;">Reposo</label><div class="eva-value" id="valReposo" style="color:var(--success)">0</div><input type="range" id="evaReposo" min="0" max="10" value="0" class="eva-slider" oninput="updateEva('Reposo', this.value)"></div>';
+  hHoy += '<div class="eva-container"><label style="text-align:center;">Movimiento</label><div class="eva-value" id="valMovimiento" style="color:var(--success)">0</div><input type="range" id="evaMovimiento" min="0" max="10" value="0" class="eva-slider" oninput="updateEva('Movimiento', this.value)"></div></div>';
   
-  hHoy += '<h3 style="font-size:15px; margin-top:15px; border-bottom:1px solid #eee; padding-bottom:5px;">2. Agentes Físicos</h3><ul style="margin-bottom:15px; padding-left:20px; line-height:1.6;">';
-  if (d.agentes && d.agentes.length && window.AGENTES) {
-      d.agentes.forEach(a => { if(AGENTES[a]) hHoy += '<li style="margin-bottom:8px;"><label style="font-weight:normal; cursor:pointer; display:flex; align-items:start; gap:8px;"><input type="checkbox" class="chk-agente" value="' + esc(AGENTES[a].n) + '" checked style="margin-top:4px;"> <span>' + AGENTES[a].n + '</span></label></li>'; });
-  } else {
-      hHoy += '<li>No hay agentes específicos para esta patología.</li>';
-  }
-  hHoy += '</ul>';
-
-  hHoy += '<h3 style="font-size:15px; margin-top:15px; border-bottom:1px solid #eee; padding-bottom:5px;">3. Agregar Ejercicio / Agente Manual</h3>';
-  hHoy += '<div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="manualEjercicio" placeholder="Escribir otro..." style="flex:1; padding:10px; font-size:14px;"><button type="button" onclick="agregarManual()" class="btn-sec" style="width:auto; padding:0 15px; margin:0;">＋</button></div>';
-  hHoy += '<ul id="listaManuales" style="margin-bottom:15px; padding-left:20px; line-height:1.6;"></ul>';
-
-  hHoy += '<h3 style="font-size:15px; margin-top:15px; border-bottom:1px solid #eee; padding-bottom:5px;">4. Evaluación de la Sesión</h3>';
-  hHoy += '<div class="grid2"><div><label>Dolor Reposo (0-10)</label><input type="number" id="evaReposo" min="0" max="10"></div><div><label>Dolor Movimiento (0-10)</label><input type="number" id="evaMovimiento" min="0" max="10"></div></div><label style="margin-top:10px;">Notas</label><textarea id="notaSesion" rows="2"></textarea><button class="btn-main" onclick="guardarSesion(' + n + ')" style="margin-top:15px;">Guardar Sesión</button></div>';
+  hHoy += '<label style="margin-top:15px;">Notas de la sesión</label><textarea id="notaSesion" rows="2"></textarea>';
+  hHoy += '<button class="btn-main" id="btnGuardarSesion" onclick="guardarSesion(' + n + ')" style="margin-top:15px;">Guardar Sesión ' + n + '</button></div>';
   
   document.getElementById('tabHoy').innerHTML = hHoy;
 
-  // EVALUACIÓN (Test + Video + Precauciones)
-  let hEval = '<div class="card"><h2>Test Principal</h2><p><b>' + (d.testN || '-') + '</b><br>' + (d.testD || '') + '</p>';
-  hEval += '<a href="https://www.youtube.com/results?search_query=test+kinesiologia+' + encodeURIComponent(d.testN) + '" target="_blank" class="btn-sec" style="display:inline-block; margin-top:10px; text-decoration:none; text-align:center;">▶ Ver video de cómo se realiza el test</a></div>';
+  // EVALUACIÓN
+  let hEval = '<div class="card"><h2>Test Principal</h2><p style="font-size:15px;"><b>' + (d.testN || '-') + '</b><br><span class="sub">' + (d.testD || '') + '</span></p>';
+  hEval += '<a href="https://www.youtube.com/results?search_query=test+kinesiologia+' + encodeURIComponent(d.testN) + '" target="_blank" class="btn-sec" style="display:block; margin-top:15px; text-decoration:none;">▶ Ver video del test</a></div>';
   
-  if(d.aviso) hEval += '<div class="card" style="border-left-color:#b91c1c;"><h2>⚠ Precauciones</h2><p style="color:#b91c1c;">' + d.aviso + '</p></div>';
+  if(d.aviso) hEval += '<div class="card" style="border-left-color:#b91c1c;"><h2 style="color:#b91c1c;">⚠ Precauciones</h2><p style="color:#b91c1c; font-size:14px;">' + d.aviso + '</p></div>';
+
+  if(d.agentes && d.agentes.length && typeof AGENTES !== 'undefined') {
+      hEval += '<div class="card"><h2>Agentes Físicos</h2>';
+      d.agentes.forEach(a => { const ag = AGENTES[a]; if(ag) hEval += `<div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;"><b style="color:var(--primary);">${ag.n}</b><br><span style="font-size:13px; color:#666;">${ag.d}</span></div>`; });
+      hEval += '</div>';
+  }
   document.getElementById('tabEval').innerHTML = hEval;
 
   // EVOLUCIÓN
   let hEvol = '<div class="card"><h2>Evolución del Dolor</h2>';
   if(!ss.length) hEvol += '<p class="sub">No hay sesiones registradas.</p>';
   else {
-      hEvol += '<table style="width:100%; border-collapse:collapse; font-size:14px;"><tr style="border-bottom:1px solid #ddd; text-align:left;"><th>N°</th><th>Fecha</th><th>Reposo</th><th>Movimiento</th></tr>';
-      ss.forEach(s => { hEvol += `<tr style="border-bottom:1px solid #eee;"><td>${s.sesion}</td><td>${new Date(s.fecha).toLocaleDateString()}</td><td>${s.evaReposo != null ? s.evaReposo : '-'}</td><td>${s.evaMovimiento != null ? s.evaMovimiento : '-'}</td></tr>`; });
+      hEvol += '<table style="width:100%; border-collapse:collapse; font-size:14px;"><tr style="border-bottom:2px solid var(--line); text-align:left;"><th>Sesión</th><th>Reposo</th><th>Movimiento</th></tr>';
+      ss.forEach(s => { 
+          const cR = s.evaReposo <= 3 ? 'var(--success)' : s.evaReposo <= 6 ? 'var(--warning)' : 'var(--danger)';
+          const cM = s.evaMovimiento <= 3 ? 'var(--success)' : s.evaMovimiento <= 6 ? 'var(--warning)' : 'var(--danger)';
+          hEvol += `<tr style="border-bottom:1px solid var(--line);"><td style="padding:10px 0;"><b>${s.sesion}</b> <span style="font-size:11px; color:#888;">(${new Date(s.fecha).toLocaleDateString()})</span></td><td style="color:${cR}; font-weight:bold;">${s.evaReposo != null ? s.evaReposo : '-'}</td><td style="color:${cM}; font-weight:bold;">${s.evaMovimiento != null ? s.evaMovimiento : '-'}</td></tr>`; 
+      });
       hEvol += '</table>';
   }
   hEvol += '</div>';
   document.getElementById('tabEvol').innerHTML = hEvol;
 
   // PLAN
-  let hPlan = '<div class="card"><h2>Plan de 10 Sesiones</h2><ul style="padding-left:20px; line-height:1.8;">';
-  SES_META.forEach((m, i) => { hPlan += `<li><b>Sesión ${i+1}:</b> ${m.fase} <span style="color:#888; font-size:13px;">(${m.meta})</span></li>`; });
+  let hPlan = '<div class="card"><h2>Plan de 10 Sesiones</h2><ul style="padding-left:20px; line-height:1.8; font-size:14px;">';
+  SES_META.forEach((m, i) => { hPlan += `<li style="margin-bottom:8px;"><b>Sesión ${i+1}:</b> ${m.fase}</li>`; });
   hPlan += '</ul></div>';
   document.getElementById('tabPlan').innerHTML = hPlan;
 
   // REFERENCIAS
   let hRef = '<div class="card"><h2>Evidencia Científica</h2>';
-  if(window.EVIDENCIA && EVIDENCIA[p.patologia] && EVIDENCIA[p.patologia].r.length) {
-      hRef += '<ul style="padding-left:20px;">';
-      EVIDENCIA[p.patologia].r.forEach(ref => { hRef += `<li style="margin-bottom:8px;">${ref.c}<br><a href="${ref.u}" target="_blank" style="font-size:13px; color:#2a7ab0;">Ver fuente en PubMed</a></li>`; });
+  if(typeof EVIDENCIA !== 'undefined' && EVIDENCIA[p.patologia] && EVIDENCIA[p.patologia].r.length) {
+      hRef += '<ul style="padding-left:20px; font-size:14px; line-height:1.5;">';
+      EVIDENCIA[p.patologia].r.forEach(ref => { hRef += `<li style="margin-bottom:12px;">${ref.c}<br><a href="${ref.u}" target="_blank" style="font-size:12px; color:var(--accent);">Ver fuente en PubMed</a></li>`; });
       hRef += '</ul>';
-  } else { hRef += '<p>No hay referencias guardadas para esta patología.</p>'; }
+  } else { hRef += '<p class="sub">No hay referencias guardadas para esta patología.</p>'; }
   hRef += '</div>';
   document.getElementById('tabRef').innerHTML = hRef;
 
-  // CAMBIO DE PESTAÑAS
   document.querySelectorAll('#tabsPac .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   ['hoy','evol','eval','plan','ref'].forEach(t => { const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) el.hidden = (t !== tab); });
 }
 
-// --- AGREGAR EJERCICIO MANUAL Y GUARDAR ---
+window.updateEva = function(tipo, valor) {
+    const v = parseInt(valor);
+    const el = document.getElementById('val' + tipo);
+    el.textContent = v;
+    if(v <= 3) el.style.color = 'var(--success)';
+    else if(v <= 6) el.style.color = 'var(--warning)';
+    else el.style.color = 'var(--danger)';
+};
+
 window.agregarManual = function() {
     const input = document.getElementById('manualEjercicio');
     const text = input.value.trim();
     if(!text) return;
-    const li = document.createElement('li');
-    li.style.marginBottom = '8px';
-    li.innerHTML = '<label style="font-weight:normal; cursor:pointer; display:flex; align-items:start; gap:8px;"><input type="checkbox" class="chk-manual" value="' + esc(text) + '" checked style="margin-top:4px;"> <span>' + esc(text) + '</span></label>';
-    document.getElementById('listaManuales').appendChild(li);
-    input.value = '';
-    input.focus();
+    const div = document.createElement('div');
+    div.innerHTML = `<label class="chk-item"><input type="checkbox" class="chk-manual" value="${esc(text)}" checked><div class="chk-box"></div><div class="chk-text">${esc(text)}</div></label>`;
+    document.getElementById('listaManuales').appendChild(div);
+    input.value = ''; input.focus();
 };
 
 window.guardarSesion = function(n) {
+  const btn = document.getElementById('btnGuardarSesion');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
   const id = document.getElementById('idPaciente').value, pat = document.getElementById('patologia').value;
   const rep = numONull(document.getElementById('evaReposo').value), mov = numONull(document.getElementById('evaMovimiento').value);
   const notas = document.getElementById('notaSesion').value;
   
-  const ejerciciosHechos = [...document.querySelectorAll('.chk-ejercicio:checked')].map(i => i.value);
-  const agentesHechos = [...document.querySelectorAll('.chk-agente:checked')].map(i => i.value);
-  const manualesHechos = [...document.querySelectorAll('.chk-manual:checked')].map(i => i.value);
-  const hechos = ejerciciosHechos.concat(agentesHechos, manualesHechos);
+  const ejs = [...document.querySelectorAll('.chk-ejercicio:checked')].map(i => i.value);
+  const ags = [...document.querySelectorAll('.chk-agente:checked')].map(i => i.value);
+  const mans = [...document.querySelectorAll('.chk-manual:checked')].map(i => i.value);
+  const hechos = ejs.concat(ags, mans);
 
   const reg = conPerfil(normSesion({ idPaciente: id, patologia: pat, sesion: +n, fecha: new Date().toISOString(), evaReposo: rep, evaMovimiento: mov, notas: notas, hechos: hechos }));
   const arr = leerSesLS().filter(s => !(s.clave === reg.clave && s.sesion === reg.sesion)); arr.push(reg); escribirSesLS(arr);
-  sesionesCache = mezclarSesiones(sesionesCache, [reg]); enviarOEncolar(reg); 
-  toast('Sesión ' + n + ' guardada ✓'); 
-  renderPaciente('hoy');
+  sesionesCache = mezclarSesiones(sesionesCache, [reg]); 
+  
+  enviarOEncolar(reg).then(() => {
+      toast('Sesión ' + n + ' guardada ✓'); 
+      if(n === 10) confeti();
+      if(timerInterval) { clearInterval(timerInterval); timerInterval = null; timerSeconds = 0; }
+      renderPaciente('hoy');
+  });
 };
 
+// --- CONSULTA RÁPIDA (ARREGLADA) ---
 function abrirConsulta(k) {
+  if(timerInterval) { clearInterval(timerInterval); timerInterval = null; timerSeconds = 0; }
   const d = DB[k]; if(!d) return;
-  document.getElementById('pacHeader').innerHTML = '<div class="ph-nom">Consulta Rápida</div><div class="ph-dx">' + esc(d.nombre) + '</div>';
-  document.getElementById('tabEval').innerHTML = '<div class="card"><h2>Test</h2><p><b>' + d.testN + '</b><br>' + d.testD + '</p></div>';
+  
+  document.getElementById('pacHeader').innerHTML = '<div class="ph-nom">Consulta Rápida</div><div class="ph-dx">' + esc(d.nombre) + '</div><button class="btn-sec" onclick="irVista(\'consulta\')" style="margin-top:10px; padding:8px;">← Volver a buscar</button>';
+  
+  let hEval = '<div class="card"><h2>Test Principal</h2><p style="font-size:15px;"><b>' + (d.testN || '-') + '</b><br><span class="sub">' + (d.testD || '') + '</span></p>';
+  hEval += '<a href="https://www.youtube.com/results?search_query=test+kinesiologia+' + encodeURIComponent(d.testN) + '" target="_blank" class="btn-sec" style="display:block; margin-top:15px; text-decoration:none;">▶ Ver video del test</a></div>';
+  
+  if(d.aviso) hEval += '<div class="card" style="border-left-color:#b91c1c;"><h2 style="color:#b91c1c;">⚠ Precauciones</h2><p style="color:#b91c1c; font-size:14px;">' + d.aviso + '</p></div>';
+
+  if(d.agentes && d.agentes.length && typeof AGENTES !== 'undefined') {
+      hEval += '<div class="card"><h2>Agentes Físicos</h2>';
+      d.agentes.forEach(a => { const ag = AGENTES[a]; if(ag) hEval += `<div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;"><b style="color:var(--primary);">${ag.n}</b><br><span style="font-size:13px; color:#666;">${ag.d}</span></div>`; });
+      hEval += '</div>';
+  }
+  
+  document.getElementById('tabEval').innerHTML = hEval;
   ['hoy','evol','eval','plan','ref'].forEach(t => { const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) el.hidden = (t !== 'eval'); });
   document.querySelectorAll('#tabsPac .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === 'eval'));
   irVista('paciente');
@@ -364,6 +470,10 @@ function abrirConsulta(k) {
 document.querySelectorAll('#tabsPac .tab').forEach(b => b.addEventListener('click', () => renderPaciente(b.dataset.tab)));
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof DB === 'undefined' || typeof AGENTES === 'undefined' || typeof ZONAS === 'undefined') {
+      document.body.innerHTML = '<div style="padding:20px; text-align:center; font-family:sans-serif;"><h1>Error de carga</h1><p>Faltan archivos de datos. Asegúrate de haber subido correctamente las carpetas <b>data/</b> con sus archivos .js.</p></div>';
+      return;
+  }
   poblarSelects();
   iniciarPerfil();
 });

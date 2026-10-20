@@ -1,4 +1,4 @@
-let SHEET_WEBAPP_URL = "PEGA_ACA_TU_URL_EXEC"; 
+let SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwt40aoZ1tDfFtT3VFBr864pti20QzQYG4YXWzwK2Uwdndc-IKDL2Z1wquVt9pAUwzO/exec"; 
 
 let PROF = null;
 let ultimoHistorial = [];
@@ -167,13 +167,13 @@ document.getElementById('login').addEventListener('click', function (e) {
   if (e.target.closest('#lgDemo')) activarPerfil({ nombre: 'Demo', hash: 'd0000000000000000000000000000000', demo: true });
 });
 
-// --- SISTEMA DE NAVEGACIÓN Y RENDERIZADO ---
+// --- NAVEGACIÓN Y RENDERIZADO ---
 function irVista(v, noHist) {
   vistaActual = v;
   VISTAS.forEach(x => { const el = document.getElementById('v-' + x); if (el) el.hidden = (x !== v); });
   document.querySelectorAll('.bn').forEach(b => b.classList.toggle('on', b.dataset.go === (v === 'paciente' ? 'pacientes' : v)));
   if (v === 'pacientes') pintarHistorial();
-  if (v === 'nuevo') document.getElementById('pickerHold').appendChild(document.getElementById('pickerCard'));
+  if (v === 'nuevo') document.getElementById('slotNuevo').appendChild(document.getElementById('pickerCard'));
   if (v === 'consulta') document.getElementById('slotConsulta').appendChild(document.getElementById('pickerCard'));
   if (!noHist) { try { history.pushState({ v: v }, '', '#' + v); } catch (e) { } }
   window.scrollTo(0, 0);
@@ -279,7 +279,6 @@ function abrirConsulta(k) {
 
 document.querySelectorAll('#tabsPac .tab').forEach(b => b.addEventListener('click', () => renderPaciente(b.dataset.tab)));
 
-// Init
 document.addEventListener('DOMContentLoaded', () => {
   poblarSelects();
   iniciarPerfil();

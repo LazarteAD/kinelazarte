@@ -3,7 +3,7 @@
 // ============================================================
 
 // ⚠️ CONFIGURACIÓN: PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ ADENTRO DE LAS COMILLAS
-const API_URL = "https://script.google.com/macros/s/AKfycbw0wXt6wOG-J4Gg0nDoerkansRhu8fr5TX3Nr_AWkaCe5ZzLPH1SpJ6f0pwFF4VGNtx/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbwNXq1wyc1dbh1G5_e0R7FNNd4jCA6siLJclGVd3SGUnTaEdEEgZTb8AzII7DoK2ZOg/exec"; 
 
 // Estado Global de la Aplicación
 let state = {

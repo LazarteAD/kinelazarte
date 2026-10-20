@@ -1,249 +1,159 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'self'; style-src 'unsafe-inline' 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob:; connect-src https://script.google.com https://script.googleusercontent.com https://eutils.ncbi.nlm.nih.gov; base-uri 'none'; form-action 'none'; object-src 'none'">
-<meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#0f766e">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f766e'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='white'%3E🩺%3C/text%3E%3C/svg%3E">
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./style.css">
-<script>if(window.top!==window.self){try{window.top.location=window.self.location;}catch(e){document.documentElement.innerHTML="";}}</script>
-<title>KineFlow · Adrián Lazarte</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f766e">
+  <title>KineFlow Pro</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-<div id="login" class="login" hidden></div>
-<div id="tour" class="login tourbox" hidden></div>
-<input type="file" id="fileRestaurar" accept=".json,application/json" hidden>
 
-<div class="topbar">
-  <div class="topbar-in">
+  <!-- Header Global -->
+  <header class="topbar">
     <div class="brand">
-      <b><span class="logo">🩺</span> KineFlow</b>
-      <span>Rehabilitación con evidencia · Adrián Lazarte</span>
-    </div>
-    <div class="sync" id="syncPill" title="Estado de guardado"><i></i><span id="syncTxt">Sin conexión</span></div>
-  </div>
-  <div class="demobar" id="demoBar" hidden><span>🎬 Modo demostración: los datos no se guardan</span><button type="button" id="demoSalir">Salir</button></div>
-</div>
-
-<main class="wrap">
-
-<section id="v-pacientes">
-  <div id="saludo"></div>
-  <div id="statsBox"></div>
-  <div class="barra-busqueda">
-    <input type="search" id="buscaPac" placeholder="Buscar paciente por nombre o diagnóstico…" autocomplete="off" aria-label="Buscar paciente">
-  </div>
-  <div class="chips" id="filtroPac" role="tablist">
-    <button type="button" class="chip on" data-f="activos" role="tab" aria-selected="true">🟢 Activos</button>
-    <button type="button" class="chip" data-f="alta" role="tab" aria-selected="false">🎓 Alta</button>
-    <button type="button" class="chip" data-f="todos" role="tab" aria-selected="false">📋 Todos</button>
-  </div>
-  <div id="listaPac"></div>
-</section>
-
-<section id="v-nuevo" hidden>
-  <h1 class="vt" id="tituloNuevo">🧑‍⚕️ Paciente nuevo</h1>
-
-  <div id="wizardPaso1">
-    <div class="card">
-      <label for="idPaciente">Nombre o Nº de historia clínica</label>
-      <p class="sub" style="margin:-4px 0 8px;">Si dos pacientes se llaman igual, agregá apellido o HC.</p>
-      <input type="text" id="idPaciente" placeholder="Ej: Pérez, Juan — HC 1234" autocomplete="off" required>
-      <label for="buscador" style="margin-top:14px;">Diagnóstico</label>
-      <input type="search" id="buscador" placeholder="Buscar: desgarro, fractura, LCA, hombro…" autocomplete="off">
-      <div class="grid2" style="margin-top:8px;">
-        <div><label for="zona">Zona</label><select id="zona"><option value="">Todas</option></select></div>
-        <div><label for="tipo">Tipo de lesión</label><select id="tipo"><option value="">Todos</option></select></div>
+      <span class="logo">🩺</span>
+      <div>
+        <h1>KineFlow <span>Pro</span></h1>
+        <small>Rehabilitación con evidencia</small>
       </div>
-      <div id="sugerencias" style="margin-top:10px;"></div>
-      <div id="seleccionActual" class="sel-actual" role="status">Ninguna patología elegida</div>
-      <details class="sub-det"><summary>Elegir de la lista completa</summary>
-        <select id="patologia"><option value="">— elegir —</option></select>
-      </details>
     </div>
-    <div class="barra-accion">
-      <button type="button" id="wizardSiguiente" class="btn-main">Siguiente →</button>
-      <button type="button" id="cancelarNuevo" class="btn-sec">Cancelar</button>
+    <div id="sync-status" class="sync-indicator">Offline</div>
+  </header>
+
+  <!-- VISTA 1: LOGIN -->
+  <div id="login-view" class="view">
+    <div class="card login-card">
+      <div class="login-icon">👋</div>
+      <h2>Bienvenido/a</h2>
+      <p class="sub">Ingresá tu email profesional para sincronizar tus pacientes.</p>
+      <input type="email" id="login-email" placeholder="ej: kine@correo.com" required>
+      <button onclick="login()" class="btn-primary">Ingresar al Consultorio</button>
     </div>
   </div>
 
-  <div id="wizardPaso2" hidden>
+  <!-- VISTA 2: DASHBOARD (LISTA DE PACIENTES) -->
+  <div id="dashboard-view" class="view hidden">
+    <div class="header-actions">
+      <h2>Mis Pacientes</h2>
+      <button onclick="showView('new-patient-view')" class="btn-fab">+ Nuevo</button>
+    </div>
+    <div id="patient-list" class="patient-grid">
+      <!-- Las tarjetas de pacientes se inyectan acá con JS -->
+    </div>
+  </div>
+
+  <!-- VISTA 3: NUEVO PACIENTE -->
+  <div id="new-patient-view" class="view hidden">
+    <div class="header-actions">
+      <h2>Nuevo Paciente</h2>
+      <button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
+    </div>
     <div class="card">
-      <h2>Datos clínicos <span class="sub">(opcional, podés completar después)</span></h2>
-      <div class="grid3">
-        <div><label for="edad">Edad</label><input type="number" id="edad" min="0" max="120" inputmode="numeric"></div>
-        <div><label for="peso">Peso (kg)</label><input type="number" id="peso" min="0" inputmode="decimal"></div>
-        <div><label for="altura">Altura (cm)</label><input type="number" id="altura" min="0" inputmode="numeric"></div>
+      <label>Nombre completo</label>
+      <input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
+      
+      <label>WhatsApp (con código de país, sin +)</label>
+      <input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
+      
+      <label>Diagnóstico Principal</label>
+      <select id="new-patient-pathology"></select>
+
+      <fieldset class="comorb-fieldset">
+        <legend>Comorbilidades (Genera Alertas Rojas)</legend>
+        <label class="check-item"><input type="checkbox" value="cardio" class="comorb"> Enf. Cardiovascular</label>
+        <label class="check-item"><input type="checkbox" value="marcapasos" class="comorb"> Marcapasos</label>
+        <label class="check-item"><input type="checkbox" value="cancer" class="comorb"> Cáncer</label>
+        <label class="check-item"><input type="checkbox" value="embarazo" class="comorb"> Embarazo</label>
+        <label class="check-item"><input type="checkbox" value="osteoporosis" class="comorb"> Osteoporosis</label>
+      </fieldset>
+
+      <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente</button>
+    </div>
+  </div>
+
+  <!-- VISTA 4: SESIÓN ACTIVA -->
+  <div id="session-view" class="view hidden">
+    
+    <div class="session-header card">
+      <div class="session-title">
+        <button onclick="showView('dashboard-view')" class="btn-back">←</button>
+        <h2 id="session-patient-name">Paciente</h2>
       </div>
-      <label for="actividad">Tipo de vida / actividad</label>
-      <select id="actividad">
-        <option value="sedentario">Sedentario</option>
-        <option value="activo">Activo (trabajo o ejercicio moderado)</option>
-        <option value="deportista">Deportista / alta demanda física</option>
-        <option value="laboral_pesado">Trabajo físico exigente / cargas repetitivas</option>
-      </select>
+      
+      <div class="timer-container">
+        <div class="timer" id="session-timer">00:00</div>
+        <button onclick="toggleTimer()" id="timer-btn" class="btn-secondary">Iniciar</button>
+      </div>
     </div>
+    
+    <div class="session-content">
+      
+      <!-- Bloque 1: Ejercicios -->
+      <div class="card">
+        <h3>1. Ejercicios Sugeridos</h3>
+        <p class="sub">Toca un ejercicio para agregarlo a la sesión de hoy.</p>
+        <div id="suggested-exercises" class="chips-container">
+          <!-- Chips de ejercicios inyectados por JS -->
+        </div>
+        
+        <h4>Ejercicios seleccionados:</h4>
+        <ul id="selected-exercises-list" class="selected-list">
+          <!-- Lista de los seleccionados -->
+        </ul>
+        
+        <div class="manual-add">
+          <input type="text" id="manual-exercise-input" placeholder="Agregar otro manualmente...">
+          <button onclick="addManualExercise()" class="btn-secondary">+</button>
+        </div>
+      </div>
+      
+      <!-- Bloque 2: Agentes Físicos -->
+      <div class="card">
+        <h3>2. Agentes Físicos</h3>
+        <p class="sub">Los agentes contraindicados aparecen bloqueados en rojo.</p>
+        <div id="agents-list">
+          <!-- Agentes inyectados por JS -->
+        </div>
+      </div>
 
-    <details class="card plegable">
-      <summary>Antecedentes y medicación <span class="sub">(importa para los agentes físicos)</span></summary>
-      <fieldset id="comorb">
-        <div class="check-row"><input type="checkbox" value="diabetes" id="c_diab"><label for="c_diab">Diabetes</label></div>
-        <div class="check-row"><input type="checkbox" value="osteoporosis" id="c_osteo"><label for="c_osteo">Osteoporosis / osteopenia</label></div>
-        <div class="check-row"><input type="checkbox" value="cardio" id="c_cardio"><label for="c_cardio">Enfermedad cardiovascular</label></div>
-        <div class="check-row"><input type="checkbox" value="cancer" id="c_cancer"><label for="c_cancer">Cáncer activo o reciente</label></div>
-        <div class="check-row"><input type="checkbox" value="embarazo" id="c_emb"><label for="c_emb">Embarazo</label></div>
-        <div class="check-row"><input type="checkbox" value="implante" id="c_imp"><label for="c_imp">Implantes metálicos / prótesis</label></div>
-        <div class="check-row"><input type="checkbox" value="marcapasos" id="c_mp"><label for="c_mp">Marcapasos / desfibrilador</label></div>
-        <div class="check-row"><input type="checkbox" value="tvp" id="c_tvp"><label for="c_tvp">Trombosis (TVP) o várices severas</label></div>
-        <div class="check-row"><input type="checkbox" value="sensib" id="c_sen"><label for="c_sen">Pérdida de sensibilidad (neuropatía)</label></div>
-        <div class="check-row"><input type="checkbox" value="infeccion" id="c_inf"><label for="c_inf">Infección activa o herida abierta</label></div>
-        <div class="check-row"><input type="checkbox" value="epilepsia" id="c_epi"><label for="c_epi">Epilepsia</label></div>
-        <div class="check-row"><input type="checkbox" id="antecedenteNeuro"><label for="antecedenteNeuro">Antecedente o sospecha neurológica (activa el mapa de niveles)</label></div>
-      </fieldset>
-      <fieldset id="medic">
-        <div class="check-row"><input type="checkbox" value="anticoagulantes" id="m_anti"><label for="m_anti">Anticoagulantes / antiagregantes</label></div>
-        <div class="check-row"><input type="checkbox" value="corticoides" id="m_cort"><label for="m_cort">Corticoides crónicos</label></div>
-        <div class="check-row"><input type="checkbox" value="opioides" id="m_opi"><label for="m_opi">Opioides</label></div>
-        <div class="check-row"><input type="checkbox" value="aines" id="m_ain"><label for="m_ain">AINES de uso crónico</label></div>
-      </fieldset>
-    </details>
+      <!-- Bloque 3: Evaluación EVA -->
+      <div class="card">
+        <h3>3. Dolor (EVA 0-10)</h3>
+        <div class="grid-2">
+          <div class="eva-box">
+            <label>Reposo</label>
+            <div class="eva-value" id="eva-reposo-val">0</div>
+            <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
+          </div>
+          <div class="eva-box">
+            <label>Movimiento</label>
+            <div class="eva-value" id="eva-movimiento-val">0</div>
+            <input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Bloque 4: Notas y Guardado -->
+      <div class="card">
+        <h3>4. Notas y Cierre</h3>
+        <textarea id="session-notes" placeholder="Evolución, ajustes, tarea para casa..."></textarea>
+        
+        <div class="action-buttons">
+          <button onclick="saveSession()" class="btn-primary">💾 Guardar Sesión</button>
+          <button onclick="sendWhatsApp()" class="btn-whatsapp">📲 Enviar por WhatsApp</button>
+        </div>
+      </div>
 
-    <details class="card plegable">
-      <summary>Banderas <span class="sub">(rojas, amarillas, azules, negras)</span></summary>
-      <span class="flagband band-red">Rojas — urgencia médica</span>
-      <fieldset id="rojas">
-        <div class="check-row"><input type="checkbox" value="peso" id="r_peso"><label for="r_peso">Pérdida de peso inexplicada</label></div>
-        <div class="check-row"><input type="checkbox" value="nocturno" id="r_noc"><label for="r_noc">Dolor nocturno no mecánico</label></div>
-        <div class="check-row"><input type="checkbox" value="fiebre" id="r_fie"><label for="r_fie">Fiebre o malestar no explicado</label></div>
-        <div class="check-row"><input type="checkbox" value="cancerhist" id="r_can"><label for="r_can">Antecedente de cáncer</label></div>
-        <div class="check-row"><input type="checkbox" value="neurologico" id="r_neu"><label for="r_neu">Déficit neurológico progresivo</label></div>
-        <div class="check-row"><input type="checkbox" value="esfinteres" id="r_esf"><label for="r_esf">Alteración de esfínteres</label></div>
-        <div class="check-row"><input type="checkbox" value="trauma" id="r_tra"><label for="r_tra">Trauma significativo reciente</label></div>
-      </fieldset>
-      <span class="flagband band-amber" style="margin-top:14px;">Amarillas — psicosociales</span>
-      <fieldset id="amarillas">
-        <div class="check-row"><input type="checkbox" value="catastrofismo" id="a_cat"><label for="a_cat">Catastrofismo / creencia de daño grave</label></div>
-        <div class="check-row"><input type="checkbox" value="miedo" id="a_mie"><label for="a_mie">Miedo al movimiento (kinesiofobia)</label></div>
-        <div class="check-row"><input type="checkbox" value="animo" id="a_ani"><label for="a_ani">Bajo ánimo / ansiedad marcada</label></div>
-      </fieldset>
-      <span class="flagband band-blue" style="margin-top:14px;">Azules — percepción laboral</span>
-      <fieldset id="azules">
-        <div class="check-row"><input type="checkbox" value="trabajoempeora" id="z_tra"><label for="z_tra">El trabajo empeora su dolor</label></div>
-        <div class="check-row"><input type="checkbox" value="soporte" id="z_sop"><label for="z_sop">Baja percepción de apoyo laboral</label></div>
-      </fieldset>
-      <span class="flagband band-black" style="margin-top:14px;">Negras — contexto</span>
-      <fieldset id="negras">
-        <div class="check-row"><input type="checkbox" value="litigio" id="n_lit"><label for="n_lit">Litigio / compensación laboral</label></div>
-        <div class="check-row"><input type="checkbox" value="licencia" id="n_lic"><label for="n_lic">Licencia prolongada / beneficio ligado al reposo</label></div>
-      </fieldset>
-    </details>
-
-    <div class="barra-accion">
-      <button type="button" id="guardar" class="btn-main">Guardar y abrir paciente</button>
-      <button type="button" id="wizardAtras" class="btn-sec">← Volver</button>
-    </div>
-    <p class="sub" id="msgNuevo" role="status"></p>
-  </div>
-</section>
-
-<section id="v-consulta" hidden>
-  <h1 class="vt">🔎 Consulta rápida</h1>
-  <p class="sub" style="margin-top:-6px;">Elegí una patología y mirá el test, los agentes físicos, el plan y las referencias.</p>
-  <div id="slotConsulta"></div>
-</section>
-
-<section id="v-paciente" hidden>
-  <div class="pac-head" id="pacHeader"></div>
-  <nav class="tabs" id="tabsPac" role="tablist" aria-label="Secciones del paciente">
-    <button type="button" role="tab" data-tab="hoy" class="tab"><span class="em">✅</span>Hoy</button>
-    <button type="button" role="tab" data-tab="evol" class="tab"><span class="em">📈</span>Evolución</button>
-    <button type="button" role="tab" data-tab="eval" class="tab"><span class="em">🩺</span>Evaluación</button>
-    <button type="button" role="tab" data-tab="plan" class="tab"><span class="em">🏋️</span>Plan</button>
-    <button type="button" role="tab" data-tab="ref" class="tab"><span class="em">📚</span>Evidencia</button>
-  </nav>
-  <div id="tabHoy" class="tabpane" hidden></div>
-  <div id="tabEvol" class="tabpane" hidden></div>
-  <div id="tabEval" class="tabpane" hidden></div>
-  <div id="tabPlan" class="tabpane" hidden></div>
-  <div id="tabRef" class="tabpane" hidden></div>
-</section>
-
-<section id="v-mas" hidden>
-  <h1 class="vt">⚙️ Más</h1>
-  <div class="card cuenta">
-    <h2>👤 Mi cuenta</h2>
-    <p class="sub">Kinesiólogo/a: <b id="cuentaNombre"></b>. Solo ves tus propios pacientes.</p>
-    <button type="button" id="btnSalir" class="btn-sec">Cerrar sesión / cambiar de kinesiólogo</button>
-    <button type="button" id="btnBorrar" class="btn-sec" style="margin-top:8px;color:var(--danger);border-color:var(--danger);">🧹 Borrar mis datos de este dispositivo</button>
-    <p class="sub">Tus pacientes siguen guardados en la planilla.</p>
-  </div>
-  <div class="card">
-    <h2>🎨 Apariencia</h2>
-    <label class="check-row" for="toggleDark"><input type="checkbox" id="toggleDark"><span>Modo oscuro</span></label>
-    <p class="sub">Se guarda en tu dispositivo. Podés cambiarlo cuando quieras.</p>
-  </div>
-  <div class="card">
-    <h2>ℹ️ Acerca de</h2>
-    <div id="acercaDatos"></div>
-    <p class="sub"><b>KineFlow</b> · v5 · por Adrián Lazarte (UNAHUR). Rehabilitación con evidencia.</p>
-    <p class="sub">⚠️ No reemplaza el criterio clínico. Las dosis de agentes físicos son orientativas: verificá contraindicaciones. Ante banderas rojas, derivá al médico.</p>
-    <div class="barra-accion">
-      <button type="button" id="btnGuia" class="btn-sec">🧭 Ver la guía rápida</button>
-      <button type="button" id="btnReiniciarDemo" class="btn-sec" hidden>🔄 Reiniciar demo</button>
     </div>
   </div>
-  <div class="card">
-    <h2>💾 Copia de seguridad</h2>
-    <div id="dbStatus" class="sub" role="status"></div>
-    <div class="barra-accion" style="margin-top:10px;">
-      <button type="button" id="exportarCsv" class="btn-sec">Descargar pacientes (CSV)</button>
-      <button type="button" id="exportarSes" class="btn-sec">Descargar sesiones (CSV)</button>
-      <button type="button" id="btnCopia" class="btn-sec">💾 Descargar copia completa</button>
-      <button type="button" id="btnRestaurar" class="btn-sec">📥 Restaurar una copia</button>
-    </div>
-  </div>
-  <div class="card">
-    <h2>🔬 ¿Falta una patología?</h2>
-    <label for="patFaltante">Nombre de la patología</label>
-    <input type="text" id="patFaltante" placeholder="Ej: Síndrome de Tietze">
-    <button type="button" id="buscarIA" class="btn-main" style="margin-top:10px;">Buscar en PubMed y guardar pendiente</button>
-    <div id="sugerenciaResultado" style="margin-top:12px;"></div>
-  </div>
-  <div class="card">
-    <h2>📲 Instalar como app</h2>
-    <p class="sub">En el celular (Chrome): menú ⋮ → "Agregar a la pantalla de inicio". Se abre sin barra de URL, como app nativa. Funciona sin conexión.</p>
-  </div>
-  <p class="disclaimer">
-    KineFlow organiza criterios generales de práctica musculoesquelética (test clínico, agentes físicos, plan de 10 sesiones) para ordenar el razonamiento clínico. Las referencias se hallaron por búsqueda y deben verificarse en la fuente. No reemplaza el examen físico, el juicio clínico ni la revisión de literatura actualizada. Ante cualquier bandera roja, priorizar derivación médica.
-  </p>
-</section>
 
-<div id="pickerHold" hidden>
-  <div class="card" id="pickerCard"></div>
-</div>
+  <!-- Notificaciones Toast -->
+  <div id="toast" class="toast hidden"></div>
 
-</main>
-
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-<nav class="bottomnav" aria-label="Navegación principal">
-  <button type="button" data-go="pacientes" class="bn on"><i class="ni">👥</i><span>Pacientes</span></button>
-  <button type="button" data-go="nuevo" class="bn"><i class="ni">+</i><span>Nuevo</span></button>
-  <button type="button" data-go="consulta" class="bn"><i class="ni">🔎</i><span>Consulta</span></button>
-  <button type="button" data-go="mas" class="bn"><i class="ni">⚙️</i><span>Más</span></button>
-</nav>
-
-<script src="./data/agentes.js"></script>
-<script src="./data/escalas.js"></script>
-<script src="./data/patologias.js"></script>
-<script src="./data/evidencia.js"></script>
-<script src="./app.js"></script>
+  <!-- Scripts -->
+  <script src="data/patologias.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+// ⚠️ IMPORTANTE: PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ ADENTRO DE LAS COMILLAS
 let SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwt40aoZ1tDfFtT3VFBr864pti20QzQYG4YXWzwK2Uwdndc-IKDL2Z1wquVt9pAUwzO/exec"; 
 
 let PROF = null;
@@ -78,7 +79,7 @@ async function enviarOEncolar(reg) { const ok = await enviarSheet(reg); if (!ok)
 
 let vaciando = false;
 async function vaciarCola() {
-  if (vaciando || !PROF || PROF.demo || !SHEET_WEBAPP_URL) return;
+  if (vaciando || !PROF || PROF.demo || !SHEET_WEBAPP_URL || SHEET_WEBAPP_URL.indexOf('PEGA_ACA')>=0) return;
   const inicial = colaLeer(); if (!inicial.length) return;
   vaciando = true;
   try {
@@ -99,6 +100,7 @@ async function initLocal() {
   const status = document.getElementById('dbStatus');
   const fLoc = leerPacientesLS(), sLoc = leerSesLS();
   ultimoHistorial = fLoc.slice(); sesionesCache = sLoc.map(normSesion);
+  
   if (SHEET_WEBAPP_URL && SHEET_WEBAPP_URL.indexOf('PEGA_ACA') < 0) {
     if (status) status.textContent = 'Conectando…';
     try {
@@ -111,8 +113,12 @@ async function initLocal() {
         if (sRem) sesionesCache = mezclarSesiones(leerSesLS(), sRem);
       }
       if (status) status.textContent = 'Sincronizado ✓';
-    } catch (e) { if (status) status.textContent = 'Modo local (sin conexión)'; }
-  } else { if (status) status.textContent = 'Modo local'; }
+    } catch (e) { 
+      if (status) status.textContent = 'Modo local (sin conexión)'; 
+    }
+  } else { 
+    if (status) status.textContent = 'Falta configurar la URL de Google Sheets'; 
+  }
   pintarHistorial();
 }
 
@@ -167,14 +173,20 @@ document.getElementById('login').addEventListener('click', function (e) {
   if (e.target.closest('#lgDemo')) activarPerfil({ nombre: 'Demo', hash: 'd0000000000000000000000000000000', demo: true });
 });
 
-// --- NAVEGACIÓN Y RENDERIZADO ---
+// --- NAVEGACIÓN ---
 function irVista(v, noHist) {
   vistaActual = v;
   VISTAS.forEach(x => { const el = document.getElementById('v-' + x); if (el) el.hidden = (x !== v); });
   document.querySelectorAll('.bn').forEach(b => b.classList.toggle('on', b.dataset.go === (v === 'paciente' ? 'pacientes' : v)));
+  
+  // Mover el buscador de patologías a la vista correcta
+  const picker = document.getElementById('pickerCard');
+  if (picker) {
+      if (v === 'nuevo') document.getElementById('slotNuevo').appendChild(picker);
+      if (v === 'consulta') document.getElementById('slotConsulta').appendChild(picker);
+  }
+
   if (v === 'pacientes') pintarHistorial();
-  if (v === 'nuevo') document.getElementById('slotNuevo').appendChild(document.getElementById('pickerCard'));
-  if (v === 'consulta') document.getElementById('slotConsulta').appendChild(document.getElementById('pickerCard'));
   if (!noHist) { try { history.pushState({ v: v }, '', '#' + v); } catch (e) { } }
   window.scrollTo(0, 0);
 }
@@ -210,7 +222,7 @@ function pintarHistorial() {
   cont.innerHTML = casos.map(x => {
     const d = DB[x.p.patologia] || {nombre: x.p.patologia};
     return '<div class="pcard"><div class="pc-top"><div class="pc-id"><div class="av">👤</div><div><div class="pc-nom">' + esc(x.p.idPaciente) + '</div><div class="pc-dx">' + esc(d.nombre) + '</div></div></div></div>' +
-      '<div class="pc-btns"><button class="go" onclick="abrirPaciente(\'' + x.clave + '\')">Abrir</button></div></div>';
+      '<div class="pc-btns"><button class="go" onclick="abrirPaciente(\'' + x.clave + '\')">Abrir Ficha</button></div></div>';
   }).join('');
 }
 
@@ -242,29 +254,42 @@ document.getElementById('patologia')?.addEventListener('change', function() {
   if(modoConsulta && k) { abrirConsulta(k); }
 });
 
+// --- CREAR PACIENTE ---
 document.getElementById('wizardSiguiente')?.addEventListener('click', () => {
   if (!document.getElementById('idPaciente').value.trim() || !document.getElementById('patologia').value) { toast('Faltan datos', true); return; }
   document.getElementById('wizardPaso1').hidden = true; document.getElementById('wizardPaso2').hidden = false;
 });
-document.getElementById('wizardAtras')?.addEventListener('click', () => { document.getElementById('wizardPaso1').hidden = false; document.getElementById('wizardPaso2').hidden = true; });
+document.getElementById('wizardAtras')?.addEventListener('click', () => { 
+  document.getElementById('wizardPaso1').hidden = false; 
+  document.getElementById('wizardPaso2').hidden = true; 
+});
+
 document.getElementById('guardar')?.addEventListener('click', () => {
   const id = document.getElementById('idPaciente').value.trim(), pat = document.getElementById('patologia').value;
   const p = conPerfil({ idPaciente: id, patologia: pat, fecha: new Date().toISOString(), estado: 'activo' });
   const arr = leerPacientesLS(); arr.unshift(p); escribirPacientesLS(arr);
-  enviarOEncolar(p); toast('Guardado'); abrirPaciente(claveP(id, pat));
+  ultimoHistorial.unshift(p); 
+  reconstruirMapa(); // <-- CORRECCIÓN: Actualizar memoria antes de abrir
+  
+  enviarOEncolar(p); 
+  toast('Paciente guardado ✓'); 
+  abrirPaciente(claveP(id, pat));
 });
 
 window.abrirPaciente = function(clave) {
-  claveActual = clave; const p = fichasMap[clave]; if (!p) return;
-  document.getElementById('idPaciente').value = p.idPaciente; document.getElementById('patologia').value = p.patologia;
-  renderPaciente('hoy'); irVista('paciente');
+  claveActual = clave; const p = fichasMap[clave]; 
+  if (!p) { toast('Error al cargar paciente', true); return; }
+  document.getElementById('idPaciente').value = p.idPaciente; 
+  document.getElementById('patologia').value = p.patologia;
+  renderPaciente('hoy'); 
+  irVista('paciente');
 };
 
 function renderPaciente(tab) {
   const p = fichasMap[claveActual]; if (!p) return;
   const d = DB[p.patologia] || {nombre:p.patologia, testN:'-', testD:''};
   document.getElementById('pacHeader').innerHTML = '<div class="ph-nom">' + esc(p.idPaciente) + '</div><div class="ph-dx">' + esc(d.nombre) + '</div>';
-  document.getElementById('tabEval').innerHTML = '<div class="card"><h2>Test</h2><p><b>' + d.testN + '</b><br>' + d.testD + '</p></div>';
+  document.getElementById('tabEval').innerHTML = '<div class="card"><h2>Test Evaluación</h2><p><b>' + d.testN + '</b><br>' + d.testD + '</p></div>';
   document.getElementById('tabHoy').innerHTML = '<div class="card"><h2>Registrar Sesión</h2><button class="btn-main" onclick="toast(\'Simulado\')">Guardar</button></div>';
   document.querySelectorAll('#tabsPac .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   ['hoy','evol','eval','plan','ref'].forEach(t => { const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) el.hidden = (t !== tab); });
@@ -274,6 +299,11 @@ function abrirConsulta(k) {
   const d = DB[k]; if(!d) return;
   document.getElementById('pacHeader').innerHTML = '<div class="ph-nom">Consulta Rápida</div><div class="ph-dx">' + esc(d.nombre) + '</div>';
   document.getElementById('tabEval').innerHTML = '<div class="card"><h2>Test</h2><p><b>' + d.testN + '</b><br>' + d.testD + '</p></div>';
+  ['hoy','evol','eval','plan','ref'].forEach(t => { 
+      const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)); 
+      if (el) el.hidden = (t !== 'eval'); 
+  });
+  document.querySelectorAll('#tabsPac .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === 'eval'));
   irVista('paciente');
 }
 

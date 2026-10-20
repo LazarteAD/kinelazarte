@@ -1,4 +1,3 @@
-// ⚠️ IMPORTANTE: PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ ADENTRO DE LAS COMILLAS
 let SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwt40aoZ1tDfFtT3VFBr864pti20QzQYG4YXWzwK2Uwdndc-IKDL2Z1wquVt9pAUwzO/exec"; 
 
 let PROF = null;
@@ -84,7 +83,7 @@ async function initLocal() {
       }
       if (status) status.textContent = 'Sincronizado ✓';
     } catch (e) { if (status) status.textContent = 'Modo local'; }
-  } else { if (status) status.textContent = 'Modo local'; }
+  } else { if (status) status.textContent = 'Falta configurar URL'; }
   pintarHistorial();
 }
 
@@ -138,7 +137,6 @@ document.getElementById('login').addEventListener('click', function (e) {
   if (e.target.closest('#lgDemo')) activarPerfil({ nombre: 'Demo', hash: 'd0000000000000000000000000000000', demo: true });
 });
 
-// --- NAVEGACIÓN ---
 function irVista(v, noHist) {
   vistaActual = v;
   VISTAS.forEach(x => { const el = document.getElementById('v-' + x); if (el) el.hidden = (x !== v); });
@@ -244,7 +242,6 @@ window.abrirPaciente = function(clave) {
   renderPaciente('hoy'); irVista('paciente');
 };
 
-// --- RENDERIZADO COMPLETO ---
 function renderPaciente(tab) {
   const p = fichasMap[claveActual]; if (!p) return;
   const d = DB[p.patologia] || {nombre:p.patologia};
@@ -255,18 +252,17 @@ function renderPaciente(tab) {
 
   document.getElementById('pacHeader').innerHTML = '<div class="ph-nom">' + esc(p.idPaciente) + '</div><div class="ph-dx">' + esc(d.nombre) + '</div>';
 
-  // PESTAÑA HOY
+  // HOY
   let hHoy = '<div class="card"><h2>Sesión ' + n + ' de 10</h2><p style="font-size:14px; color:#666;"><b>Fase:</b> ' + meta.fase + ' | <b>Dosis:</b> ' + meta.dosis + '</p><ul style="margin-bottom:20px; padding-left:20px; line-height:1.6;">';
   meta.plan.forEach(item => {
     const tipo = item[0]; const arr = (d[tipo] && d[tipo].length) ? d[tipo] : [FILLER[tipo]];
     const ej = arr[item[1] % arr.length];
-    // Botón de video agregado acá 👇
     hHoy += '<li style="margin-bottom:8px;"><label style="font-weight:normal; cursor:pointer; display:flex; align-items:start; gap:8px;"><input type="checkbox" class="chk-ejercicio" value="' + esc(ej) + '" checked style="margin-top:4px;"> <span>' + esc(ej) + '</span></label><a href="https://www.youtube.com/results?search_query=ejercicio+kinesiologia+' + encodeURIComponent(ej.split(',')[0]) + '" target="_blank" style="font-size:12px; color:#2a7ab0; margin-left:30px;">▶ Ver video de cómo hacerlo</a></li>';
   });
   hHoy += '</ul><div class="grid2"><div><label>Dolor Reposo (0-10)</label><input type="number" id="evaReposo" min="0" max="10"></div><div><label>Dolor Movimiento (0-10)</label><input type="number" id="evaMovimiento" min="0" max="10"></div></div><label style="margin-top:10px;">Notas</label><textarea id="notaSesion" rows="2"></textarea><button class="btn-main" onclick="guardarSesion(' + n + ')" style="margin-top:15px;">Guardar Sesión</button></div>';
   document.getElementById('tabHoy').innerHTML = hHoy;
 
-  // PESTAÑA EVALUACIÓN (Agregada completa)
+  // EVALUACION
   let hEval = '<div class="card"><h2>Test Principal</h2><p><b>' + (d.testN || '-') + '</b><br>' + (d.testD || '') + '</p></div>';
   if(d.aviso) hEval += '<div class="card" style="border-left-color:#b91c1c;"><h2>⚠ Precauciones</h2><p style="color:#b91c1c;">' + d.aviso + '</p></div>';
   if(d.agentes && d.agentes.length && window.AGENTES) {
@@ -276,7 +272,7 @@ function renderPaciente(tab) {
   }
   document.getElementById('tabEval').innerHTML = hEval;
 
-  // PESTAÑA EVOLUCIÓN
+  // EVOLUCION
   let hEvol = '<div class="card"><h2>Evolución del Dolor</h2>';
   if(!ss.length) hEvol += '<p class="sub">No hay sesiones registradas.</p>';
   else {
@@ -287,13 +283,13 @@ function renderPaciente(tab) {
   hEvol += '</div>';
   document.getElementById('tabEvol').innerHTML = hEvol;
 
-  // PESTAÑA PLAN
+  // PLAN
   let hPlan = '<div class="card"><h2>Plan de 10 Sesiones</h2><ul style="padding-left:20px; line-height:1.8;">';
   SES_META.forEach((m, i) => { hPlan += `<li><b>Sesión ${i+1}:</b> ${m.fase} <span style="color:#888; font-size:13px;">(${m.meta})</span></li>`; });
   hPlan += '</ul></div>';
   document.getElementById('tabPlan').innerHTML = hPlan;
 
-  // PESTAÑA REFERENCIAS
+  // REFERENCIAS
   let hRef = '<div class="card"><h2>Evidencia Científica</h2>';
   if(window.EVIDENCIA && EVIDENCIA[p.patologia] && EVIDENCIA[p.patologia].r.length) {
       hRef += '<ul style="padding-left:20px;">';
@@ -303,7 +299,6 @@ function renderPaciente(tab) {
   hRef += '</div>';
   document.getElementById('tabRef').innerHTML = hRef;
 
-  // CAMBIO DE PESTAÑAS
   document.querySelectorAll('#tabsPac .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   ['hoy','evol','eval','plan','ref'].forEach(t => { const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)); if (el) el.hidden = (t !== tab); });
 }

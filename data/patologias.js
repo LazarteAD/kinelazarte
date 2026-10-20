@@ -1,114 +1,281 @@
-const DB = {};
+/* ============================================================
+   KINEFLOW PRO - Base de Datos Clínica
+   ============================================================ */
 
-function P(tipo, nombre, testN, testD, agentes, mov, control, fuerza, fuerzaFunc, funcional, extra) {
-  return Object.assign({ tipo, nombre, testN, testD, agentes: agentes || [], mov: mov || [], control: control || [], fuerza: fuerza || [], fuerzaFunc: fuerzaFunc || [], funcional: funcional || [] }, extra || {});
-}
-
-const F = "frio", T = "tens", C = "calor", M = "manual", U = "us", G = "magneto";
-const AV_FX = "Fractura: respetar inmovilización y carga. Derivar ante dolor, calor o rubor.";
-const AV_POP = "Post-operatorio: seguir protocolo del cirujano.";
-const AV_DESG = "Desgarro: evitar estiramientos forzados en fase aguda.";
-
-Object.assign(DB, {
-  lumbalgia: P("mecanico", "Lumbalgia mecánica", "Test de Lasègue", "Cribado neural.", [C, T, M], ["Movilidad lumbar"], ["Core"], ["Peso muerto"], ["Sit-to-stand"], ["Levantar cargas"], {aviso: "Evitar flexión forzada si hay dolor agudo."}),
-  cervicalgia: P("mecanico", "Cervicalgia", "Test de Spurling", "Radiculopatía (alta especificidad).", [C, T, M], ["Movilidad cervical"], ["Chin tuck"], ["Remo"], ["Gesto laboral"], ["Postura"]),
-  hombro: P("tendinopatia", "Manguito rotador", "Test de Jobe", "Supraespinoso.", [F, U, T], ["Péndulos"], ["Manguito pared"], ["Rotación banda"], ["Alcance"], ["Gesto overhead"], {aviso: "Evitar movimientos por encima de la cabeza si duele."}),
-  rodilla: P("degenerativo", "Gonartrosis", "McMurray", "Meniscal.", [C, F, T], ["Bici"], ["Cuádriceps"], ["Sentadilla"], ["Sit-to-stand"], ["Marcha"]),
-  cadera: P("degenerativo", "Coxartrosis", "FADIR", "Pinzamiento.", [C, T, M], ["Movilidad"], ["Glúteo medio"], ["Sentadilla"], ["Equilibrio"], ["Marcha"]),
-  tobillo: P("ligamento", "Esguince tobillo", "Cajón anterior", "Inestabilidad.", [F, T, U], ["Bombeo"], ["Propiocepción"], ["Peroneos"], ["Equilibrio"], ["Carrera"], {aviso: "No cargar si hay edema severo."}),
-  fascitis: P("tendinopatia", "Fascitis plantar", "Windlass", "Fascia.", [F, U, T], ["Estiramiento"], ["Short foot"], ["Elevación talones"], ["Marcha"], ["Carrera"]),
-  epicondilitis: P("tendinopatia", "Epicondilitis", "Cozen", "Extensores.", [F, U, T], ["Movilidad"], ["Isométrico"], ["Excéntrico"], ["Agarre"], ["Gesto"]),
-  tunel: P("nervio", "Túnel carpiano", "Phalen", "Mediano.", [F, T], ["Deslizamiento"], ["Postura"], ["Pinza"], ["Ergonomía"], ["Gesto"]),
-  neuropatico: P("nervio", "Neuropático", "Slump", "Radicular.", [T], ["Movilización"], ["Control"], ["Fuerza gradual"], ["Marcha"], ["Función"]),
-  ciatica: P("hernia", "Ciática", "Lasègue", "Radicular.", [T, C], ["Deslizamiento"], ["Core"], ["Puente"], ["Marcha"], ["Hip hinge"], {aviso: "Derivación urgente si hay déficit motor o alteración de esfínteres."}),
-  hernia_lumbar: P("hernia", "Hernia lumbar", "Lasègue cruzado", "Radicular.", [T, C], ["Gato-camello"], ["Bird-dog"], ["Plancha"], ["Sit-to-stand"], ["Hip hinge"]),
-  estenosis_lumbar: P("degenerativo", "Estenosis", "Bicicleta", "Claudicación.", [C, T], ["Flexión"], ["Core"], ["Bici"], ["Marcha"], ["Flexión"]),
-  facetario: P("degenerativo", "Facetario", "Kemp", "Extensión.", [C, T, M], ["Flexión"], ["Bird-dog"], ["Puente"], ["Marcha"], ["Postura"]),
-  espondilolistesis: P("degenerativo", "Espondilolistesis", "Stork", "Pars.", [C, T], ["Báscula"], ["Dead bug"], ["Plancha"], ["Sit-to-stand"], ["Deporte"]),
-  piriforme: P("mecanico", "Piriforme", "FAIR", "Glúteo.", [C, T], ["Estiramiento"], ["Glúteo medio"], ["Rotadores"], ["Sentadilla"], ["Sedestación"]),
-  sacroileitis: P("mecanico", "Sacroileitis", "Cluster", "Sacroilíaco.", [C, T, M], ["Movilidad"], ["Core"], ["Puente aductores"], ["Marcha"], ["Carga"]),
-  hernia_dorsal: P("hernia", "Hernia dorsal", "Slump", "Torácica.", [F, T], ["Extensión"], ["Escapular"], ["Remo"], ["Sit-to-stand"], ["Carga"]),
-  dorsalgia: P("mecanico", "Dorsalgia", "Palpación", "Contractura.", [C, T, M], ["Extensión"], ["Y-T-W"], ["Remo"], ["Tórax"], ["Ergonomía"]),
-  fractura_vertebral: P("fractura", "Fractura vertebral", "Percusión", "Compresión.", [T, F], ["Respiración"], ["Extensores"], ["Remo"], ["Marcha"], ["Log roll"], {aviso: AV_FX}),
-  espondilitis: P("reumatologico", "Espondilitis", "Schober", "Anquilosante.", [C, T], ["Esfinge"], ["Respiración"], ["Extensión"], ["Tórax"], ["Natación"]),
-  costillas: P("fractura", "Fractura costillas", "Compresión", "Costal.", [T], ["Respiración"], ["Expansión"], ["Movilidad"], ["Marcha"], ["Tos"], {aviso: AV_FX}),
-  cefalea_tensional: P("mecanico", "Cefalea tensional", "Palpación", "Tensional.", [C, T], ["Cervical"], ["Retracción"], ["Profundos"], ["Pausas"], ["Estrés"]),
-  latigazo: P("ligamento", "Latigazo", "Quebec", "Whiplash.", [F, T], ["Movilidad"], ["Profundos"], ["Isométrico"], ["Función"], ["Retorno"]),
-  rotura_manguito: P("desgarro", "Rotura manguito", "Drop arm", "Rotura.", [F, T], ["Péndulos"], ["Manguito"], ["Rotación"], ["Alcance"], ["Overhead"], {aviso: "En rotura aguda, no forzar elevación."}),
-  capsulitis: P("mecanico", "Capsulitis", "Rotación pasiva", "Congelado.", [C, U], ["Movilización"], ["Manguito"], ["Fuerza"], ["AVD"], ["Rango"]),
-  inestabilidad_hombro: P("ligamento", "Inestabilidad", "Aprensión", "Glenohumeral.", [F, T], ["Movilidad"], ["Estabilización"], ["Rotación"], ["Control"], ["Deporte"]),
-  acromioclavicular: P("ligamento", "AC", "Cross-body", "Acromio.", [F, T], ["Movilidad"], ["Escapular"], ["Press"], ["Carga"], ["Deporte"]),
-  fractura_clavicula: P("fractura", "Fx clavícula", "ROM", "Clavícula.", [F, T], ["Codo"], ["Escapular"], ["Remo"], ["AVD"], ["Carga"], {aviso: AV_FX}),
-  epitrocleitis: P("tendinopatia", "Epitrocleitis", "Flexión resistida", "Flexores.", [F, U, T], ["Movilidad"], ["Isométrico"], ["Excéntrico"], ["Agarre"], ["Gesto"]),
-  dequervain: P("tendinopatia", "De Quervain", "Finkelstein", "Pulgar.", [F, U], ["Pulgar"], ["Isométrico"], ["Pinza"], ["Agarre"], ["Tareas"]),
-  tunel_cubital: P("nervio", "Túnel cubital", "Tinel", "Cubital.", [F, T], ["Deslizamiento"], ["Postura"], ["Mano"], ["Ergonomía"], ["Nocturno"]),
-  fractura_colles: P("fractura", "Colles", "Dinamometría", "Radio distal.", [F, T], ["Dedos"], ["Prono-sup"], ["Agarre"], ["AVD"], ["Apoyo"], {aviso: AV_FX}),
-  esguince_muneca: P("ligamento", "Esguince muñeca", "Fóvea", "TFCC.", [F, T], ["Movilidad"], ["Propiocepción"], ["Fuerza"], ["AVD"], ["Apoyo"]),
-  dedo_gatillo: P("tendinopatia", "Dedo gatillo", "Bloqueo", "Polea A1.", [F, U], ["Deslizamiento"], ["Agarre"], ["Masilla"], ["Tareas"], ["Ergonomía"]),
-  rizartrosis: P("degenerativo", "Rizartrosis", "Grind", "Pulgar.", [C, T], ["Pulgar"], ["Pinza"], ["Fuerza"], ["Agarre"], ["AVD"]),
-  bursitis_trocanterea: P("tendinopatia", "Bursitis trocantérea", "Palpación", "Trocánter.", [F, T], ["Movilidad"], ["Glúteo medio"], ["Abducción"], ["Marcha"], ["Evitar cruce"]),
-  gluteo_medio: P("tendinopatia", "Glúteo medio", "Apoyo unipodal", "Tendinopatía.", [F, T], ["Movilidad"], ["Isométrico"], ["Abducción"], ["Marcha"], ["Escalón"]),
-  pubalgia: P("tendinopatia", "Pubalgia", "Aducción", "Pubis.", [F, T], ["Movilidad"], ["Core"], ["Aductores"], ["Marcha"], ["Carrera"]),
-  fractura_cadera: P("fractura", "Fx cadera", "TUG", "Fémur.", [F, T], ["Isométrico"], ["Transferencia"], ["Sit-to-stand"], ["Marcha"], ["Equilibrio"], {aviso: AV_FX}),
-  protesis_cadera: P("postquirurgico", "Prótesis cadera", "TUG", "Artroplastia.", [F, T], ["Tobillo"], ["Transferencia"], ["Abducción"], ["Marcha"], ["Escaleras"], {aviso: AV_POP}),
-  desgarro_isquiotibial: P("desgarro", "Isquiotibiales", "Puranen", "Isquio.", [F, T], ["Puente"], ["Puente"], ["Nórdico"], ["Sit-to-stand"], ["Carrera"], {aviso: AV_DESG}),
-  patelofemoral: P("mecanico", "Patelofemoral", "Aprensión", "Rótula.", [F, T], ["Movilidad"], ["Valgo"], ["Glúteo"], ["Escalón"], ["Impacto"]),
-  tendinopatia_rotuliana: P("tendinopatia", "Rotuliana", "Decline", "Tendón.", [F, U], ["Movilidad"], ["Isométrico"], ["HSR"], ["Escalón"], ["Salto"]),
-  lca: P("ligamento", "LCA", "Lachman", "Cruzado.", [F, T], ["Extensión"], ["Equilibrio"], ["Sentadilla"], ["Marcha"], ["Pivote"]),
-  lesion_meniscal: P("desgarro", "Menisco", "Thessaly", "Meniscal.", [F, T], ["Movilidad"], ["Cuádriceps"], ["Sentadilla"], ["Escalón"], ["Marcha"]),
-  itb: P("tendinopatia", "Cintilla IT", "Noble", "ITB.", [F, T], ["Movilidad"], ["Glúteo medio"], ["Abducción"], ["Escalón"], ["Carrera"]),
-  protesis_rodilla: P("postquirurgico", "Prótesis rodilla", "Goniometría", "Artroplastia.", [F, T], ["Talón"], ["Cuádriceps"], ["Sentadilla"], ["Marcha"], ["Escaleras"], {aviso: AV_POP}),
-  fractura_rotula: P("fractura", "Fx rótula", "Lag", "Rótula.", [F, T], ["Tobillo"], ["Cuádriceps"], ["SLR"], ["Marcha"], ["Deporte"], {aviso: AV_FX}),
-  osgood: P("pediatrico", "Osgood-Schlatter", "Palpación", "Tuberosidad.", [F], ["Estiramiento"], ["Isométrico"], ["Sentadilla"], ["Marcha"], ["Carga"]),
-  rotura_aquiles: P("desgarro", "Rotura Aquiles", "Thompson", "Aquiles.", [F, T], ["Bota"], ["Isométrico"], ["Talones"], ["Marcha"], ["Carrera"], {aviso: "Post-op: no forzar dorsiflexión."}),
-  inestabilidad_tobillo: P("ligamento", "Inestabilidad tobillo", "Cajón", "Crónica.", [T], ["Movilidad"], ["Equilibrio"], ["Peroneos"], ["Inestable"], ["Deporte"]),
-  fractura_tobillo: P("fractura", "Fx tobillo", "Lunge", "Maleolar.", [F, T], ["Dedos"], ["Propiocepción"], ["Talones"], ["Marcha"], ["Deporte"], {aviso: AV_FX}),
-  hallux_valgus: P("degenerativo", "Hallux valgus", "Ángulo", "Juanete.", [C, T], ["Movilización"], ["Abductor"], ["Abducción"], ["Marcha"], ["Calzado"]),
-  pie_plano: P("mecanico", "Pie plano", "Navicular drop", "Pronación.", [], ["Estiramiento"], ["Short foot"], ["Talones"], ["Marcha"], ["Calzado"]),
-  metatarsalgia: P("mecanico", "Metatarsalgia", "Squeeze", "Metatarso.", [F, U], ["Pie"], ["Intrínsecos"], ["Talones"], ["Marcha"], ["Calzado"]),
-  pie_diabetico: P("nervio", "Pie diabético", "Monofilamento", "Neuropatía.", [], ["Tobillo"], ["Equilibrio"], ["Piernas"], ["Marcha"], ["Cuidado"], {aviso: "No aplicar calor ni frío (riesgo de quemadura)."}),
-  acv: P("neurologico", "ACV", "Ashworth", "Hemi.", [T, G], ["Pasiva"], ["Tronco"], ["Tarea"], ["Transferencia"], ["AVD"], {aviso: "Controlar presión arterial y fatiga."}),
-  lesion_medular: P("neurologico", "Lesión medular", "ASIA", "Médula.", [T, G], ["Pasiva"], ["Tronco"], ["Fuerza"], ["Silla"], ["AVD"], {aviso: "Vigilar disreflexia autonómica."}),
-  parkinson: P("neurologico", "Parkinson", "Hoehn-Yahr", "Parkinson.", [], ["Rotación"], ["Equilibrio"], ["Extensores"], ["Marcha"], ["Transferencias"], {aviso: "Entrenar en fase ON de medicación."}),
-  artritis_reumatoide: P("reumatologico", "AR", "Dinamometría", "Artritis.", [T, F], ["Movilidad"], ["Protección"], ["Isométrico"], ["Sit-to-stand"], ["Ahorro"]),
-  fibromialgia: P("reumatologico", "Fibromialgia", "ACR", "Dolor.", [C, T], ["Movilidad"], ["Relajación"], ["Baja carga"], ["Marcha"], ["Pacing"]),
-  osteoporosis: P("reumatologico", "Osteoporosis", "Sit-to-stand", "Hueso.", [], ["Extensión"], ["Equilibrio"], ["Extensores"], ["Marcha"], ["Caídas"]),
-  riesgo_caidas: P("geriatria", "Riesgo caídas", "TUG", "Fragilidad.", [], ["Movilidad"], ["Equilibrio"], ["Sit-to-stand"], ["Tándem"], ["Dual"]),
-  epoc: P("cardiorrespiratorio", "EPOC", "Marcha 6min", "Pulmón.", [], ["Labios"], ["Ahorro"], ["Fuerza"], ["Caminata"], ["Educación"]),
-  pci: P("pediatrico", "PCI", "GMFCS", "Cerebral.", [], ["Estiramiento"], ["Tronco"], ["Juego"], ["Marcha"], ["Escuela"])
-});
-
-const ZONAS = {
-  "Columna": ["lumbalgia", "cervicalgia", "ciatica", "hernia_lumbar", "estenosis_lumbar", "facetario", "espondilolistesis", "piriforme", "sacroileitis", "hernia_dorsal", "dorsalgia", "fractura_vertebral", "espondilitis", "latigazo"],
-  "Hombro": ["hombro", "rotura_manguito", "capsulitis", "inestabilidad_hombro", "acromioclavicular", "fractura_clavicula"],
-  "Codo y Mano": ["epicondilitis", "epitrocleitis", "dequervain", "tunel", "tunel_cubital", "fractura_colles", "esguince_muneca", "dedo_gatillo", "rizartrosis"],
-  "Cadera": ["cadera", "bursitis_trocanterea", "gluteo_medio", "pubalgia", "fractura_cadera", "protesis_cadera", "desgarro_isquiotibial"],
-  "Rodilla": ["rodilla", "patelofemoral", "tendinopatia_rotuliana", "lca", "lesion_meniscal", "itb", "protesis_rodilla", "fractura_rotula", "osgood"],
-  "Tobillo y Pie": ["tobillo", "fascitis", "rotura_aquiles", "inestabilidad_tobillo", "fractura_tobillo", "hallux_valgus", "pie_plano", "metatarsalgia", "pie_diabetico"],
-  "Neuro": ["acv", "lesion_medular", "parkinson", "neuropatico"],
-  "Otros": ["artritis_reumatoide", "fibromialgia", "osteoporosis", "riesgo_caidas", "epoc", "pci", "cefalea_tensional", "costillas"]
+// 1. Definición de Agentes Físicos con sus Contraindicaciones (Alertas rojas)
+const AGENTES = {
+  calor: { 
+    nombre: "Termoterapia (Calor)", 
+    dosis: "15-20 min · 40-45°C", 
+    contraindica: ["cancer", "tvp", "infeccion", "sensib"] 
+  },
+  frio: { 
+    nombre: "Crioterapia", 
+    dosis: "10-15 min · fase aguda", 
+    contraindica: ["sensib"] 
+  },
+  tens: { 
+    nombre: "TENS (Electroestimulación)", 
+    dosis: "80-100 Hz, 20-30 min", 
+    contraindica: ["cardio", "marcapasos", "infeccion", "embarazo"] 
+  },
+  magneto: { 
+    nombre: "Magnetoterapia", 
+    dosis: "Baja frecuencia, 20-30 min", 
+    contraindica: ["cardio", "marcapasos", "implante", "cancer"] 
+  },
+  us: { 
+    nombre: "Ultrasonido Terapéutico", 
+    dosis: "1 MHz · 1.0-1.5 W/cm²", 
+    contraindica: ["cancer", "tvp", "infeccion"] 
+  },
+  manual: { 
+    nombre: "Terapia Manual", 
+    dosis: "Movilización articular", 
+    contraindica: ["osteoporosis", "cancer", "tvp"] 
+  },
+  puncion: { 
+    nombre: "Punción Seca", 
+    dosis: "10-20 seg por punto gatillo", 
+    contraindica: ["anticoagulantes", "cardio", "cancer"] 
+  }
 };
 
-const TIPOS = { fractura: "Fracturas", desgarro: "Desgarros", hernia: "Hernias", ligamento: "Ligamentos", tendinopatia: "Tendinopatías", postquirurgico: "Post-op", degenerativo: "Artrosis", mecanico: "Mecánico", nervio: "Nervio", neurologico: "Neuro", reumatologico: "Reuma", cardiorrespiratorio: "Cardio", geriatria: "Geriatría", pediatrico: "Pediátrico" };
+// 2. Base de Datos de Patologías
+// Estructura: { nombre, test, agentes: [keys], ejercicios: { movilidad, control, fuerza, funcional } }
+const DB = {
+  lumbalgia: {
+    nombre: "Lumbalgia mecánica",
+    test: "Test de Lasègue",
+    agentes: ["calor", "tens", "manual"],
+    ejercicios: {
+      movilidad: ["Movilidad lumbo-pélvica activa en rango libre de dolor", "Respiración diafragmática + básculas pélvicas"],
+      control: ["Activación de core (transverso/multífidos) en decúbito", "Puente glúteo bajo umbral de dolor"],
+      fuerza: ["Peso muerto rumano con banda", "Ejercicio de extensión tipo McKenzie"],
+      funcional: ["Sit-to-stand asistido", "Marcha con obstáculos bajos"]
+    }
+  },
+  cervicalgia: {
+    nombre: "Cervicalgia mecánica",
+    test: "Test de Spurling",
+    agentes: ["calor", "manual"],
+    ejercicios: {
+      movilidad: ["Movilidad cervical activa multidireccional", "Retracción cervical (chin tuck) suave"],
+      control: ["Activación de flexores profundos", "Control escapular en cadena cerrada"],
+      fuerza: ["Fortalecimiento isométrico cervical", "Remo con banda para estabilizadores escapulares"],
+      funcional: ["Chin tuck funcional en sedestación", "Reentrenamiento postural en pantalla"]
+    }
+  },
+  hombro: {
+    nombre: "Dolor de hombro / Manguito rotador",
+    test: "Test de Jobe (Empty Can)",
+    agentes: ["frio", "us", "tens"],
+    ejercicios: {
+      movilidad: ["Péndulos de Codman", "Movilidad asistida con bastón en rango indoloro"],
+      control: ["Activación de manguito en cadena cerrada (pared)", "Estabilización escapular (retracción/depresión)"],
+      fuerza: ["Fortalecimiento excéntrico de rotadores externos", "Press con progresión de carga controlada"],
+      funcional: ["Alcance funcional a estantes", "Tareas de AVD (vestido, higiene)"]
+    }
+  },
+  rodilla: {
+    nombre: "Gonartrosis / Dolor de rodilla",
+    test: "Test de McMurray",
+    agentes: ["calor", "frio", "tens", "magneto"],
+    ejercicios: {
+      movilidad: ["Movilidad activa de rodilla en rango indoloro", "Bicicleta sin carga a baja resistencia"],
+      control: ["Activación de cuádriceps (isométrico)", "Control de glúteo medio en apoyo unipodal"],
+      fuerza: ["Sentadilla parcial con banda", "Prensa/extensión de rodilla con carga progresiva"],
+      funcional: ["Sit-to-stand desde silla", "Subir/bajar escalón bajo"]
+    }
+  },
+  ciatica: {
+    nombre: "Ciática / Hernia discal lumbar",
+    test: "Test de Lasègue cruzado",
+    agentes: ["tens", "calor", "manual"],
+    ejercicios: {
+      movilidad: ["Movilización neural gradual (deslizamiento)", "Movilidad lumbar en patrón de preferencia"],
+      control: ["Estabilización lumbar de bajo umbral", "Activación de transverso en decúbito"],
+      fuerza: ["Puente glúteo bilateral", "Fortalecimiento progresivo monitoreando irradiación"],
+      funcional: ["Marcha progresiva de tramos cortos", "Técnica de levantamiento con columna neutra"]
+    }
+  },
+  lca: {
+    nombre: "Rehabilitación post LCA",
+    test: "Test de Lachman",
+    agentes: ["frio", "tens", "magneto"],
+    ejercicios: {
+      movilidad: ["Extensión completa de rodilla (apoyo de talón)", "Flexión progresiva en decúbito"],
+      control: ["Equilibrio unipodal con ojos abiertos", "Control neuromuscular de rodilla"],
+      fuerza: ["Sentadilla parcial y prensa", "Fortalecimiento en cadena cerrada"],
+      funcional: ["Marcha con patrón simétrico", "Subida de escalones"]
+    }
+  },
+  capsulitis: {
+    nombre: "Capsulitis adhesiva (Hombro congelado)",
+    test: "Rango pasivo de rotación externa",
+    agentes: ["calor", "us", "manual"],
+    ejercicios: {
+      movilidad: ["Elevación asistida con bastón en decúbito supino", "Movilización pasiva en rango disponible"],
+      control: ["Control escapular con deslizamientos en pared", "Activación suave de manguito"],
+      fuerza: ["Isométricos de rotadores en neutro", "Fortalecimiento progresivo al recuperar rango"],
+      funcional: ["Alcance con el brazo en tareas de higiene", "Tareas diarias con alcance cada vez mayor"]
+    }
+  },
+  tobillo: {
+    nombre: "Esguince de tobillo",
+    test: "Test del cajón anterior",
+    agentes: ["frio", "tens", "us"],
+    ejercicios: {
+      movilidad: ["Movilidad activa de tobillo (bombeos)", "Movilidad en cadena abierta multidireccional"],
+      control: ["Propiocepción en apoyo bipodal", "Activación de peroneos con banda"],
+      fuerza: ["Fortalecimiento de peroneos", "Elevación de talones (gemelos)"],
+      funcional: ["Equilibrio estático asistido", "Marcha funcional con progresión"]
+    }
+  },
+  fascitis: {
+    nombre: "Fascitis plantar",
+    test: "Windlass Test",
+    agentes: ["frio", "us", "tens"],
+    ejercicios: {
+      movilidad: ["Estiramiento de fascia plantar y tríceps sural", "Automasaje con pelota"],
+      control: ["Activación de músculos intrínsecos (short foot)", "Control de carga en apoyo unipodal"],
+      fuerza: ["Elevación de talones progresiva", "Fortalecimiento de tríceps sural excéntrico"],
+      funcional: ["Marcha con calzado adecuado", "Ejercicios de pie sentado"]
+    }
+  },
+  epicondilitis: {
+    nombre: "Epicondilitis lateral",
+    test: "Test de Cozen",
+    agentes: ["frio", "us", "manual"],
+    ejercicios: {
+      movilidad: ["Movilidad activa de muñeca y codo", "Deslizamiento neural del radial"],
+      control: ["Isométricos de extensores bajo umbral", "Control escapular"],
+      fuerza: ["Fortalecimiento excéntrico de extensores", "Fortalecimiento de agarre"],
+      funcional: ["Tareas manuales livianas", "Ejercicio de agarre funcional"]
+    }
+  },
+  tunel: {
+    nombre: "Síndrome del túnel carpiano",
+    test: "Test de Phalen",
+    agentes: ["frio", "tens"],
+    ejercicios: {
+      movilidad: ["Deslizamiento neural del mediano", "Movilidad activa de muñeca"],
+      control: ["Reeducación postural de muñeca", "Control de carga en agarre"],
+      fuerza: ["Fortalecimiento de flexores/extensores", "Fortalecimiento de pinza"],
+      funcional: ["Adaptación ergonómica", "Ejercicios de prensión con pausas"]
+    }
+  },
+  acv: {
+    nombre: "ACV / Hemiparesia",
+    test: "Escala de Ashworth Modificada",
+    agentes: ["tens", "magneto"],
+    ejercicios: {
+      movilidad: ["Movilización pasiva/asistida del hemicuerpo", "Movilidad activa de tronco"],
+      control: ["Control de tronco en sedestación", "Equilibrio sentado con alcances"],
+      fuerza: ["Entrenamiento orientado a la tarea", "Fortalecimiento de miembro superior"],
+      funcional: ["Transferencias cama-silla", "Reentrenamiento de AVD (vestido, higiene)"]
+    }
+  },
+  parkinson: {
+    nombre: "Enfermedad de Parkinson",
+    test: "Escala de Hoehn y Yahr",
+    agentes: [],
+    ejercicios: {
+      movilidad: ["Movilidad axial y rotación de tronco", "Movilidad global amplia"],
+      control: ["Equilibrio con perturbaciones suaves", "Estrategias anticaída"],
+      fuerza: ["Sit-to-stand repetido", "Fortalecimiento de extensores"],
+      funcional: ["Marcha con pistas auditivas", "Giros y transferencias"]
+    }
+  },
+  artritis_reumatoide: {
+    nombre: "Artritis reumatoide",
+    test: "Dinamometría de agarre",
+    agentes: ["tens", "frio"],
+    ejercicios: {
+      movilidad: ["Movilidad activa suave de articulaciones", "Ejercicios de mano (flexo-extensión)"],
+      control: ["Protección articular y ergonomía", "Control postural"],
+      fuerza: ["Fortalecimiento isométrico submáximo", "Ejercicio aeróbico de bajo impacto"],
+      funcional: ["Sit-to-stand", "Actividades diarias con ahorro articular"]
+    }
+  },
+  riesgo_caidas: {
+    nombre: "Riesgo de caídas en adulto mayor",
+    test: "Timed Up and Go (TUG)",
+    agentes: [],
+    ejercicios: {
+      movilidad: ["Movilidad articular global suave", "Movilidad de tronco"],
+      control: ["Equilibrio bipodal ojos cerrados", "Transferencia de peso"],
+      fuerza: ["Sit-to-stand repetido", "Elevación de talones"],
+      funcional: ["Marcha en tándem", "Marcha con tareas duales"]
+    }
+  },
+  epoc: {
+    nombre: "EPOC / Rehabilitación respiratoria",
+    test: "Test de marcha de 6 minutos",
+    agentes: [],
+    ejercicios: {
+      movilidad: ["Respiración con labios fruncidos", "Movilidad torácica"],
+      control: ["Técnicas de ahorro de energía", "Control de disnea"],
+      fuerza: ["Fortalecimiento de miembros inferiores", "Ejercicio aeróbico en intervalos"],
+      funcional: ["Caminata progresiva", "Sit-to-stand"]
+    }
+  },
+  pci: {
+    nombre: "Parálisis cerebral infantil",
+    test: "GMFCS (Función motora gruesa)",
+    agentes: [],
+    ejercicios: {
+      movilidad: ["Estiramiento de acortamientos", "Movilización activa lúdica"],
+      control: ["Control de cabeza y tronco", "Equilibrio sentado"],
+      fuerza: ["Fortalecimiento funcional a través del juego", "Entrenamiento de tareas"],
+      funcional: ["Sit-to-stand", "Marcha asistida según nivel"]
+    }
+  },
+  fibromialgia: {
+    nombre: "Fibromialgia",
+    test: "Criterios ACR 2016",
+    agentes: ["calor", "tens"],
+    ejercicios: {
+      movilidad: ["Movilidad suave global", "Estiramientos de bajo impacto"],
+      control: ["Respiración y relajación", "Conciencia corporal"],
+      fuerza: ["Fortalecimiento de baja intensidad", "Ejercicio aeróbico suave"],
+      funcional: ["Sit-to-stand", "Marcha cómoda"]
+    }
+  },
+  osteoporosis: {
+    nombre: "Osteoporosis",
+    test: "Sit-to-stand de 30s",
+    agentes: [],
+    ejercicios: {
+      movilidad: ["Extensión de columna suave", "Movilidad de cadera"],
+      control: ["Equilibrio y propiocepción", "Postura erguida"],
+      fuerza: ["Fortalecimiento de extensores", "Entrenamiento de fuerza progresivo"],
+      funcional: ["Sit-to-stand", "Caminata con impacto controlado"]
+    }
+  },
+  pie_diabetico: {
+    nombre: "Pie diabético / Neuropatía",
+    test: "Monofilamento de 10g",
+    agentes: [],
+    ejercicios: {
+      movilidad: ["Movilidad activa de tobillo", "Estiramiento de gemelos"],
+      control: ["Equilibrio con apoyo", "Control del apoyo plantar"],
+      fuerza: ["Fortalecimiento de piernas en sedente", "Elevación de talones"],
+      funcional: ["Marcha con calzado adecuado", "Cuidado diario de los pies"]
+    }
+  }
+};
 
-const SES_META = [
-  { fase: "Evaluación", meta: "Línea base.", eval: "Evaluación.", plan: [['mov', 0], ['mov', 1], ['control', 0]], dosis: "2x10" },
-  { fase: "Movilidad", meta: "Rango.", eval: "Control.", plan: [['mov', 1], ['control', 0], ['control', 1]], dosis: "2x12" },
-  { fase: "Activación", meta: "Control.", eval: "Control.", plan: [['control', 0], ['control', 1], ['mov', 0]], dosis: "3x10" },
-  { fase: "Activación", meta: "Consolidar.", eval: "Control.", plan: [['control', 1], ['control', 0], ['fuerza', 0]], dosis: "3x12" },
-  { fase: "Reevaluación", meta: "Carga.", eval: "Reevaluación.", plan: [['control', 0], ['fuerza', 0], ['fuerza', 1]], dosis: "3x12" },
-  { fase: "Fuerza", meta: "Resistencia.", eval: "Control.", plan: [['fuerza', 0], ['fuerza', 1], ['control', 1]], dosis: "3x10" },
-  { fase: "Fuerza", meta: "Consolidar.", eval: "Control.", plan: [['fuerza', 1], ['fuerza', 0], ['funcional', 0]], dosis: "3x12" },
-  { fase: "Transferencia", meta: "Función.", eval: "Control.", plan: [['fuerza', 0], ['funcional', 0], ['funcional', 1]], dosis: "3x10" },
-  { fase: "Integración", meta: "Gesto.", eval: "Control.", plan: [['funcional', 0], ['funcional', 1], ['fuerza', 1]], dosis: "4x8" },
-  { fase: "Alta", meta: "Resultado.", eval: "Reevaluación final.", plan: [['funcional', 1], ['funcional', 0], ['fuerza', 0]], dosis: "3x10" }
+// 3. Plan de 10 Sesiones (Fases y Dosis)
+const SESIONES_PLAN = [
+  { n: 1, fase: "Evaluación y Movilidad Protegida", dosis: "2 series x 10 rep · Esfuerzo 3/10" },
+  { n: 2, fase: "Movilidad y Primeros Ejercicios de Control", dosis: "2 series x 12 rep · Esfuerzo 3-4/10" },
+  { n: 3, fase: "Activación y Control Motor", dosis: "3 series x 10 rep · Esfuerzo 4/10" },
+  { n: 4, fase: "Consolidación de Control", dosis: "3 series x 12 rep · Esfuerzo 4-5/10" },
+  { n: 5, fase: "Reevaluación y Primera Carga", dosis: "3 series x 12 rep · Esfuerzo 5/10" },
+  { n: 6, fase: "Fuerza Progresiva", dosis: "3 series x 10 rep (mayor resistencia) · Esfuerzo 5-6/10" },
+  { n: 7, fase: "Consolidación de Fuerza", dosis: "3 series x 10-12 rep · Esfuerzo 6/10" },
+  { n: 8, fase: "Transferencia Funcional", dosis: "3-4 series x 10 rep · Esfuerzo 6-7/10" },
+  { n: 9, fase: "Integración Funcional", dosis: "4 series x 8-10 rep · Esfuerzo 7/10" },
+  { n: 10, fase: "Reevaluación Final y Alta", dosis: "3 series x 10 rep (mantenimiento) · Esfuerzo 6/10" }
 ];
-
-const FILLER = {
-  mov: "Movilidad activa de la zona y de las articulaciones vecinas, en rango sin dolor",
-  control: "Control motor y propiocepción de la zona (equilibrio y estabilidad)",
-  fuerza: "Fortalecimiento global de la cadena cinética con banda o peso corporal",
-  funcional: "Gesto funcional específico de la actividad del paciente (trabajo, deporte o vida diaria)"
-};
-
-const CRITERIO = "Criterio de progresión: subir un nivel si el dolor es <=3/10 a las 24h.";

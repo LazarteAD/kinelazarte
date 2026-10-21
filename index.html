@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
   <title>KineFlow Clinical</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="data/patologias.js"></script>
+  <script src="data/evidencia.js"></script>
 </head>
 <body>
   <header class="app-header">
@@ -16,17 +19,21 @@
       <div class="logo-icon">K</div>
       <div><h1>KineFlow <span>Clinical</span></h1><small>Rehabilitación con evidencia</small></div>
     </div>
-    <div id="sync-status" class="sync-indicator offline">Local</div>
+    <div class="header-right">
+      <div id="sync-status" class="sync-indicator offline">Local</div>
+    </div>
   </header>
 
   <main class="main-content">
     <!-- VISTA 1: LOGIN -->
     <div id="login-view" class="view">
-      <div class="card login-card">
-        <h2>Acceso Profesional</h2>
+      <div class="card login-card glass">
+        <div class="login-logo">🩺</div>
+        <h2>Bienvenido/a</h2>
+        <p class="sub">Ingresá a tu consultorio digital</p>
         <label>Email</label><input type="email" id="login-email" placeholder="kine@correo.com">
         <label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••">
-        <button onclick="login()" class="btn-primary mt-2">Ingresar</button>
+        <button onclick="login()" class="btn-primary mt-2 ripple">Ingresar</button>
       </div>
     </div>
 
@@ -37,7 +44,7 @@
         <button onclick="showView('calendar-view'); initCalendar();" class="btn-icon" title="Ver Calendario">📅</button>
       </div>
       <div id="patient-list" class="patient-grid"></div>
-      <button onclick="showView('new-patient-view')" class="btn-fab">+</button>
+      <button onclick="showView('new-patient-view')" class="btn-fab ripple">+</button>
     </div>
 
     <!-- VISTA 3: CALENDARIO -->
@@ -46,7 +53,7 @@
         <h2>Agenda de Turnos</h2>
         <button onclick="showView('dashboard-view')" class="btn-icon" title="Volver">👥</button>
       </div>
-      <div class="card" id="calendar-container"></div>
+      <div class="card glass" id="calendar-container"></div>
     </div>
 
     <!-- VISTA 4: NUEVO PACIENTE -->
@@ -55,18 +62,13 @@
         <h2>Nuevo Paciente</h2>
         <button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
       </div>
-      <div class="card">
-        <label>Nombre completo</label>
-        <input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
-        
-        <label>WhatsApp (código país, sin +)</label>
-        <input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
-        
+      <div class="card glass">
+        <label>Nombre completo</label><input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
+        <label>WhatsApp (código país, sin +)</label><input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
         <div class="grid-2">
           <div><label>Edad</label><input type="number" id="new-patient-age" placeholder="Años"></div>
           <div><label>Peso (kg)</label><input type="number" id="new-patient-weight" placeholder="kg"></div>
         </div>
-        
         <label>Nivel de Actividad</label>
         <select id="new-patient-activity">
           <option value="sedentario">Sedentario</option>
@@ -74,21 +76,18 @@
           <option value="deportista">Deportista (4+ días/sem)</option>
           <option value="laboral_pesado">Trabajo físico exigente</option>
         </select>
-
-        <label>Anamnesis (Motivo de consulta)</label>
+        <label>Anamnesis</label>
         <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas..."></textarea>
-
         <label>Medicación y su influencia</label>
-        <textarea id="new-patient-meds" placeholder="Ej: Toma Ibuprofeno 400mg cada 8hs..."></textarea>
-
+        <textarea id="new-patient-meds" placeholder="Ej: Ibuprofeno 400mg cada 8hs..."></textarea>
         <label>Fecha y Hora del Turno (opcional)</label>
         <input type="datetime-local" id="new-patient-turno">
         
         <fieldset class="flags-fieldset red-border">
-          <legend>🚩 Banderas Rojas (Derivación Urgente)</legend>
+          <legend>🚩 Banderas Rojas (Derivación)</legend>
           <label class="check-item"><input type="checkbox" value="red_dolor_nocturno" class="red-flag"> Dolor nocturno no mecánico</label>
           <label class="check-item"><input type="checkbox" value="red_perdida_peso" class="red-flag"> Pérdida de peso inexplicada</label>
-          <label class="check-item"><input type="checkbox" value="red_fiebre" class="red-flag"> Fiebre o malestar general</label>
+          <label class="check-item"><input type="checkbox" value="red_fiebre" class="red-flag"> Fiebre o malestar</label>
           <label class="check-item"><input type="checkbox" value="red_cancer" class="red-flag"> Antecedente de cáncer</label>
           <label class="check-item"><input type="checkbox" value="red_neurologico" class="red-flag"> Déficit neurológico</label>
           <label class="check-item"><input type="checkbox" value="red_esfinteres" class="red-flag"> Disfunción de esfínteres</label>
@@ -96,13 +95,13 @@
 
         <fieldset class="flags-fieldset yellow-border">
           <legend>🟡 Banderas Amarillas (Psicosociales)</legend>
-          <label class="check-item"><input type="checkbox" value="yellow_kinesiofobia" class="yellow-flag"> <b>Kinesiofobia</b> (miedo al movimiento)</label>
+          <label class="check-item"><input type="checkbox" value="yellow_kinesiofobia" class="yellow-flag"> <b>Kinesiofobia</b></label>
           <label class="check-item"><input type="checkbox" value="yellow_catastrofismo" class="yellow-flag"> Catastrofismo</label>
           <label class="check-item"><input type="checkbox" value="yellow_animo" class="yellow-flag"> Bajo ánimo / ansiedad</label>
-          <label class="check-item"><input type="checkbox" value="yellow_laboral" class="yellow-flag"> Insatisfacción laboral / litigio</label>
+          <label class="check-item"><input type="checkbox" value="yellow_laboral" class="yellow-flag"> Insatisfacción laboral</label>
         </fieldset>
 
-        <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente</button>
+        <button onclick="createPatient()" class="btn-primary mt-2 ripple">Guardar Paciente</button>
       </div>
     </div>
 
@@ -111,35 +110,48 @@
       <div class="session-topbar">
         <button onclick="showView('dashboard-view'); renderPatientList();" class="btn-icon">←</button>
         <h2 id="session-patient-name">Paciente</h2>
-        <button onclick="exportarHistoria()" class="btn-icon" title="Exportar Historia Completa">🖨️</button>
+        <button onclick="exportarHistoria()" class="btn-icon">🖨️</button>
+      </div>
+
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="session-progress" style="width:0%"></div>
       </div>
 
       <div class="tab-content">
-        <!-- PESTAÑA 1: MAPA -->
+        <!-- PESTAÑA MAPA -->
         <div id="tab-mapa" class="tab-pane">
-          <div class="card anamnesis-card">
+          <div class="card anamnesis-card glass">
             <div style="display:flex; justify-content:space-between; align-items:start;">
               <h3>📋 Resumen Clínico</h3>
-              <button onclick="editarAnamnesis()" class="btn-icon" style="font-size:1rem;" title="Editar Anamnesis">✏️</button>
+              <button onclick="editarAnamnesis()" class="btn-icon" style="font-size:1rem;">✏️</button>
             </div>
             <p id="anamnesis-resumen" class="sub" style="margin-bottom:10px; font-style:italic;"></p>
             <div id="meds-resumen" class="sub" style="margin-bottom:10px;"></div>
             <div id="flags-alert"></div>
           </div>
           
-          <div class="card text-center">
+          <div class="card glass text-center">
             <h3 id="patologia-nombre">Patología</h3>
             <p class="sub" id="patologia-test">Test</p>
-            <button onclick="verTest()" class="btn-secondary w-100 mt-1">🔍 Ver Test Clínico</button>
+            <button onclick="verTest()" class="btn-secondary w-100 mt-1 ripple">🔍 Ver Test Clínico</button>
           </div>
+
+          <div class="card glass">
+            <h3>📚 Evidencia Científica</h3>
+            <div id="evidencia-panel"></div>
+          </div>
+
+          <details class="card glass">
+            <summary style="cursor:pointer; font-weight:700; color:var(--primary);">📖 Bibliografía completa</summary>
+            <div id="bibliografia-list" style="margin-top:12px; font-size:0.85rem; line-height:1.6;"></div>
+          </details>
           
-          <!-- MAPA CORPORAL INTERACTIVO -->
-          <div class="card text-center">
+          <div class="card glass text-center">
             <h3>📍 Mapa de Dolor</h3>
-            <p class="sub" style="margin-bottom:15px;">Tocá las zonas para marcar/desmarcar dolor.</p>
+            <p class="sub">Tocá las zonas para marcar dolor.</p>
             <div class="body-map-container">
               <svg id="body-svg" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
-                <g fill="#e2e8f0" stroke="#cbd5e1" stroke-width="2">
+                <g fill="currentColor" stroke="var(--border)" stroke-width="2" opacity="0.4">
                   <circle cx="100" cy="40" r="25" />
                   <rect x="85" y="65" width="30" height="15" rx="5" />
                   <path d="M 60 80 Q 100 70 140 80 L 150 180 Q 100 190 50 180 Z" />
@@ -148,100 +160,95 @@
                   <rect x="65" y="185" width="30" height="140" rx="10" />
                   <rect x="105" y="185" width="30" height="140" rx="10" />
                 </g>
-                <circle id="zone-cabeza" cx="100" cy="40" r="25" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-cabeza')" />
-                <circle id="zone-cuello" cx="100" cy="72" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-cuello')" />
-                <circle id="zone-hombro-izq" cx="40" cy="95" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-hombro-izq')" />
-                <circle id="zone-hombro-der" cx="160" cy="95" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-hombro-der')" />
-                <circle id="zone-codo-izq" cx="40" cy="150" r="12" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-codo-izq')" />
-                <circle id="zone-codo-der" cx="160" cy="150" r="12" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-codo-der')" />
-                <circle id="zone-muneca-izq" cx="40" cy="180" r="10" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-muneca-izq')" />
-                <circle id="zone-muneca-der" cx="160" cy="180" r="10" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-muneca-der')" />
-                <circle id="zone-dorsal" cx="100" cy="110" r="20" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-dorsal')" />
-                <circle id="zone-lumbar" cx="100" cy="160" r="22" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-lumbar')" />
-                <circle id="zone-cadera" cx="100" cy="190" r="18" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-cadera')" />
-                <circle id="zone-rodilla-izq" cx="80" cy="260" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-rodilla-izq')" />
-                <circle id="zone-rodilla-der" cx="120" cy="260" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-rodilla-der')" />
-                <circle id="zone-tobillo-izq" cx="80" cy="325" r="12" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-tobillo-izq')" />
-                <circle id="zone-tobillo-der" cx="120" cy="325" r="12" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-tobillo-der')" />
+                <circle id="zone-cabeza" cx="100" cy="40" r="25" class="zone" onclick="toggleZone('zone-cabeza')" />
+                <circle id="zone-cuello" cx="100" cy="72" r="15" class="zone" onclick="toggleZone('zone-cuello')" />
+                <circle id="zone-hombro-izq" cx="40" cy="95" r="15" class="zone" onclick="toggleZone('zone-hombro-izq')" />
+                <circle id="zone-hombro-der" cx="160" cy="95" r="15" class="zone" onclick="toggleZone('zone-hombro-der')" />
+                <circle id="zone-codo-izq" cx="40" cy="150" r="12" class="zone" onclick="toggleZone('zone-codo-izq')" />
+                <circle id="zone-codo-der" cx="160" cy="150" r="12" class="zone" onclick="toggleZone('zone-codo-der')" />
+                <circle id="zone-muneca-izq" cx="40" cy="180" r="10" class="zone" onclick="toggleZone('zone-muneca-izq')" />
+                <circle id="zone-muneca-der" cx="160" cy="180" r="10" class="zone" onclick="toggleZone('zone-muneca-der')" />
+                <circle id="zone-dorsal" cx="100" cy="110" r="20" class="zone" onclick="toggleZone('zone-dorsal')" />
+                <circle id="zone-lumbar" cx="100" cy="160" r="22" class="zone" onclick="toggleZone('zone-lumbar')" />
+                <circle id="zone-cadera" cx="100" cy="190" r="18" class="zone" onclick="toggleZone('zone-cadera')" />
+                <circle id="zone-rodilla-izq" cx="80" cy="260" r="15" class="zone" onclick="toggleZone('zone-rodilla-izq')" />
+                <circle id="zone-rodilla-der" cx="120" cy="260" r="15" class="zone" onclick="toggleZone('zone-rodilla-der')" />
+                <circle id="zone-tobillo-izq" cx="80" cy="325" r="12" class="zone" onclick="toggleZone('zone-tobillo-izq')" />
+                <circle id="zone-tobillo-der" cx="120" cy="325" r="12" class="zone" onclick="toggleZone('zone-tobillo-der')" />
               </svg>
             </div>
-            <div id="pain-zones-summary" style="margin-top:10px; font-size:0.85rem; font-weight:bold; color:var(--danger);"></div>
+            <div id="pain-zones-summary"></div>
           </div>
           
-          <div class="card">
+          <div class="card glass">
             <h3>Evaluación EVA</h3>
             <div class="grid-2">
-              <div class="eva-box">
-                <label>Reposo</label>
-                <div class="eva-value" id="eva-reposo-val">0</div>
-                <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
-              </div>
-              <div class="eva-box">
-                <label>Movimiento</label>
-                <div class="eva-value" id="eva-movimiento-val">0</div>
-                <input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)">
-              </div>
+              <div class="eva-box"><label>Reposo</label><div class="eva-value" id="eva-reposo-val">0</div><input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)"></div>
+              <div class="eva-box"><label>Movimiento</label><div class="eva-value" id="eva-movimiento-val">0</div><input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)"></div>
             </div>
           </div>
         </div>
 
-        <!-- PESTAÑA 2: TERAPIA -->
+        <!-- PESTAÑA TERAPIA -->
         <div id="tab-ejercicios" class="tab-pane hidden">
-          <div class="card" style="background:var(--primary-light); border:1px solid var(--primary);">
-            <h3 style="margin:0;">⏱️ Tiempo Total en Consultorio</h3>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-              <div style="text-align:center;"><small style="color:var(--text-muted);">Ejercicios</small><br><b id="time-ejercicios" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
-              <div style="text-align:center;"><small style="color:var(--text-muted);">Agentes</small><br><b id="time-agentes" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
-              <div style="text-align:center;"><small style="color:var(--text-muted);">Total</small><br><b id="time-total" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
+          <div class="card glass time-card">
+            <h3>⏱️ Tiempo de Sesión</h3>
+            <div class="time-grid">
+              <div><small>Ejercicios</small><b id="time-ejercicios">0 min</b></div>
+              <div><small>Agentes</small><b id="time-agentes">0 min</b></div>
+              <div><small>Total</small><b id="time-total">0 min</b></div>
             </div>
-            <div id="time-alert" style="margin-top:10px; font-size:0.8rem; font-weight:bold;"></div>
+            <div id="time-alert" class="time-alert"></div>
           </div>
 
-          <div class="card">
+          <div class="card glass">
             <h3>1. Agentes Físicos</h3>
             <div id="agents-list"></div>
           </div>
           
-          <div class="card">
-            <h3>2. Ejercicios en Consultorio</h3>
-            <div id="suggested-exercises" class="chips-container" style="max-height: 150px; overflow-y: auto;"></div>
+          <div class="card glass">
+            <h3>2. Ejercicios Consultorio</h3>
+            <div id="suggested-exercises" class="chips-container"></div>
             <ul id="selected-consultorio" class="selected-list"></ul>
+          </div>
+
+          <div class="card glass border-teal" id="rpg-card" style="display:none;">
+            <h3>🧘 RPG — Posturas de Souchard</h3>
+            <p class="sub">Posturas sostenidas de 20-30 min para trabajo de cadenas musculares.</p>
+            <div id="rpg-posturas-list"></div>
           </div>
         </div>
 
-        <!-- PESTAÑA 3: EVOLUCIÓN -->
+        <!-- PESTAÑA EVOLUCIÓN -->
         <div id="tab-evolucion" class="tab-pane hidden">
-          <div class="card">
+          <div class="card glass">
             <h3>📊 Evolución del Dolor</h3>
-            <div style="height:200px; width:100%;"><canvas id="chart-evolucion"></canvas></div>
+            <div style="height:220px;"><canvas id="chart-evolucion"></canvas></div>
           </div>
-          <div class="card">
+          <div class="card glass">
             <h3>📋 Plan de 10 Sesiones</h3>
             <div id="lista-sesiones"></div>
           </div>
         </div>
 
-        <!-- PESTAÑA 4: CIERRE Y CASA -->
+        <!-- PESTAÑA CIERRE -->
         <div id="tab-cierre" class="tab-pane hidden">
-          <div class="card">
-            <h3>Notas Clínicas de la Sesión</h3>
-            <textarea id="session-notes" placeholder="Evolución de hoy, ajustes, etc..."></textarea>
+          <div class="card glass">
+            <h3>Notas Clínicas</h3>
+            <textarea id="session-notes" placeholder="Evolución de hoy..."></textarea>
           </div>
 
-          <div class="card border-teal">
+          <div class="card glass border-teal">
             <h3>🏠 Plan para Casa</h3>
-            <p class="sub">Armá la rutina según cómo le fue al paciente hoy.</p>
-            <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2">✨ Armar rutina automática</button>
+            <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2 ripple">✨ Rutina automática</button>
             <ul id="selected-casa" class="selected-list"></ul>
             <div class="grid-2 mt-2">
-              <button onclick="imprimirPlanCasa()" class="btn-secondary" style="background:#fff; border:1px solid var(--primary); color:var(--primary);">🖨️ Imprimir</button>
-              <button onclick="sendWhatsApp()" class="btn-whatsapp">📲 WhatsApp</button>
+              <button onclick="imprimirPlanCasa()" class="btn-secondary ripple">🖨️ Imprimir</button>
+              <button onclick="sendWhatsApp()" class="btn-whatsapp ripple">📲 WhatsApp</button>
             </div>
           </div>
 
-          <div class="card" style="position: sticky; bottom: 80px; z-index: 10; background: #fff; border: 2px solid var(--primary);">
-            <button onclick="saveSession()" class="btn-primary" style="margin:0;">💾 Guardar Sesión y Cerrar</button>
-          </div>
+          <button onclick="saveSession()" class="btn-primary btn-save-fixed ripple">💾 Guardar Sesión</button>
         </div>
       </div>
 
@@ -254,13 +261,14 @@
     </div>
   </main>
 
+  <!-- MODAL MEDIA -->
   <div id="media-modal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-content glass">
       <span class="modal-close" onclick="closeModal()">×</span>
       <h3 id="modal-title">Demostración</h3>
-      <div style="text-align:center; padding: 20px 0;">
-        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary" style="display:block; margin-bottom:10px; text-decoration:none;">▶ Ver Video</a>
-        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary" style="display:block; text-decoration:none;">🖼️ Ver Imágenes</a>
+      <div class="modal-actions">
+        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary ripple">▶ Ver Video</a>
+        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary ripple">🖼️ Ver Imágenes</a>
       </div>
     </div>
   </div>
@@ -269,7 +277,6 @@
   <div id="print-home-area" class="print-only"></div>
   <div id="toast" class="toast hidden"></div>
   
-  <script src="data/patologias.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

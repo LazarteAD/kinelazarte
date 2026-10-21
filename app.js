@@ -1,8 +1,7 @@
 // ============================================================
 // KINEFLOW CLINICAL - Lógica Principal (Elite Center + Legado)
 // ============================================================
-
-const API_URL = "https://script.google.com/macros/s/AKfycbwb1fgBpCvnFNdbRhAlDyAThE83EhQ3V8Xkw7GkObnKBiChLnM7mf8xslfERckp9I7z/exec"; // ⚠️ PEGÁ TU URL /exec
+const API_URL = "https://script.google.com/macros/s/AKfycbwb1fgBpCvnFNdbRhAlDyAThE83EhQ3V8Xkw7GkObnKBiChLnM7mf8xslfERckp9I7z/exec";
 
 let chartInstance = null;
 let calendar = null;

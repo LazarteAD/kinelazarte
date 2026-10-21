@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f766e">
-  <title>KineFlow Pro | Clinical Rehab</title>
+  <title>KineFlow Clinical</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
@@ -26,7 +26,7 @@
     <div id="login-view" class="view">
       <div class="card login-card">
         <h2>Acceso Profesional</h2>
-        <p class="sub">Ingresá para gestionar tus pacientes y sesiones.</p>
+        <p class="sub">Ingresá para gestionar tus pacientes.</p>
         <input type="email" id="login-email" placeholder="Email profesional" required>
         <button onclick="login()" class="btn-primary mt-2">Ingresar</button>
       </div>
@@ -49,16 +49,37 @@
       <div class="card">
         <label>Nombre completo</label>
         <input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
+        
         <label>WhatsApp (código país, sin +)</label>
         <input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
-        <label>Diagnóstico Principal</label>
-        <select id="new-patient-pathology"></select>
+        
+        <label>Fecha de Ingreso</label>
+        <input type="date" id="new-patient-date">
+
+        <div class="grid-2">
+          <div><label>Edad</label><input type="number" id="new-patient-age" placeholder="Años"></div>
+          <div><label>Peso (kg)</label><input type="number" id="new-patient-weight" placeholder="kg"></div>
+        </div>
+        <div class="grid-2">
+          <div><label>Altura (cm)</label><input type="number" id="new-patient-height" placeholder="cm"></div>
+          <div><label>Diagnóstico</label><select id="new-patient-pathology"></select></div>
+        </div>
+
         <fieldset class="comorb-fieldset">
-          <legend>Comorbilidades (Alertas)</legend>
-          <label class="check-item"><input type="checkbox" value="marcapasos" class="comorb"> Marcapasos</label>
-          <label class="check-item"><input type="checkbox" value="embarazo" class="comorb"> Embarazo</label>
-          <label class="check-item"><input type="checkbox" value="cancer" class="comorb"> Cáncer</label>
+          <legend>Banderas Rojas (Alertas)</legend>
+          <label class="check-item"><input type="checkbox" value="peso" class="flag"> Pérdida de peso inexplicada</label>
+          <label class="check-item"><input type="checkbox" value="fiebre" class="flag"> Fiebre o malestar</label>
+          <label class="check-item"><input type="checkbox" value="cancer" class="flag"> Antecedente de cáncer</label>
+          <label class="check-item"><input type="checkbox" value="neurologico" class="flag"> Déficit neurológico</label>
         </fieldset>
+
+        <fieldset class="comorb-fieldset">
+          <legend>Medicación (Contraindicaciones)</legend>
+          <label class="check-item"><input type="checkbox" value="anticoagulantes" class="med"> Anticoagulantes</label>
+          <label class="check-item"><input type="checkbox" value="corticoides" class="med"> Corticoides crónicos</label>
+          <label class="check-item"><input type="checkbox" value="aines" class="med"> AINEs crónicos</label>
+        </fieldset>
+
         <button onclick="createPatient()" class="btn-primary mt-2">Guardar y Comenzar</button>
       </div>
     </div>
@@ -99,25 +120,21 @@
         </div>
 
         <div class="card">
-          <h3>4. Escala de Dolor (EVA)</h3>
+          <h3>4. Evaluación y Evolución</h3>
           <div class="grid-2">
             <div class="eva-box">
-              <label>Reposo</label>
+              <label>Dolor Reposo (EVA)</label>
               <div class="eva-value" id="eva-reposo-val">0</div>
               <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
             </div>
             <div class="eva-box">
-              <label>Movimiento</label>
+              <label>Dolor Movimiento (EVA)</label>
               <div class="eva-value" id="eva-movimiento-val">0</div>
               <input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)">
             </div>
           </div>
-        </div>
-        
-        <div class="card">
           <textarea id="session-notes" placeholder="Notas clínicas, evolución..."></textarea>
           <button onclick="saveSession()" class="btn-primary mt-2">💾 Guardar Sesión</button>
-          <button onclick="sendWhatsApp()" class="btn-whatsapp mt-1">📲 Enviar Tarea</button>
         </div>
       </div>
     </div>

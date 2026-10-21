@@ -1,9 +1,8 @@
 // ============================================================
-// KINEFLOW CLINICAL - Lógica Principal (UX/UI Profesional)
+// KINEFLOW CLINICAL - Lógica Principal (Elite Center)
 // ============================================================
 
-// ⚠️ PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ (termina en /exec)
-const API_URL = "https://script.google.com/macros/s/AKfycbwb1fgBpCvnFNdbRhAlDyAThE83EhQ3V8Xkw7GkObnKBiChLnM7mf8xslfERckp9I7z/exec"; 
+const API_URL = "TU_URL_AQUI"; // ⚠️ PEGÁ TU URL /exec
 
 let chartInstance = null;
 let calendar = null;
@@ -21,7 +20,8 @@ let state = {
     casa: [], 
     agentes: [], 
     eva_reposo: 0, 
-    eva_movimiento: 0, 
+    eva_activo: 0,
+    eva_pasivo: 0,
     notas: "", 
     zonasDolor: [] 
   }
@@ -289,7 +289,8 @@ function iniciarSesion(pat) {
     casa: [], 
     agentes: [], 
     eva_reposo: 0, 
-    eva_movimiento: 0, 
+    eva_activo: 0,
+    eva_pasivo: 0,
     notas: "", 
     zonasDolor: [] 
   };
@@ -311,7 +312,19 @@ function iniciarSesion(pat) {
   if (p.banderasRojas && p.banderasRojas.length > 0) flagsHTML += `<div class="alert red">🚩 Banderas Rojas: ${p.banderasRojas.join(', ')}</div>`;
   if (p.banderasAmarillas && p.banderasAmarillas.length > 0) flagsHTML += `<div class="alert yellow">🟡 Banderas Amarillas: ${p.banderasAmarillas.join(', ')}</div>`;
   document.getElementById('flags-alert').innerHTML = flagsHTML;
-  
+
+  // Alerta Farmacológica
+  if (p.medicacionTexto) {
+    const farmaco = buscarFarmaco(p.medicacionTexto);
+    if (farmaco) {
+      document.getElementById('farmaco-alert').innerHTML = `<div class="alert red">⚠️ <b>Alerta Farmacológica:</b> ${farmaco.riesgo}</div>`;
+    } else {
+      document.getElementById('farmaco-alert').innerHTML = '';
+    }
+  } else {
+    document.getElementById('farmaco-alert').innerHTML = '';
+  }
+
   document.querySelectorAll('.zone').forEach(z => z.classList.remove('active'));
   const zonaDefecto = ZONAS_PATOLOGIA[pat];
   if (zonaDefecto) {
@@ -362,7 +375,7 @@ function iniciarSesion(pat) {
     });
   }
   
-  // 3. Pestaña Evolución (CORREGIDO CON <=)
+  // 3. Pestaña Evolución
   document.getElementById('lista-sesiones').innerHTML = SESIONES_PLAN.map(s => {
     let estado = s.n <= completadas ? '✅' : (s.n === completadas + 1 ? '▶️' : '🔒');
     let clase = s.n <= completadas ? 'completed' : (s.n > completadas + 1 ? 'locked' : 'current');
@@ -374,6 +387,9 @@ function iniciarSesion(pat) {
   // 4. Pestaña Cierre
   document.getElementById('session-notes').value = '';
   document.getElementById('rutina-casa-preview').innerHTML = '';
+  document.getElementById('eva-reposo').value = 0; document.getElementById('eva-reposo-val').textContent = '0';
+  document.getElementById('eva-activo').value = 0; document.getElementById('eva-activo-val').textContent = '0';
+  document.getElementById('eva-pasivo').value = 0; document.getElementById('eva-pasivo-val').textContent = '0';
   
   // 5. Inicializar Tiempo y Mostrar
   document.querySelectorAll('.timer-chip').forEach(c => c.classList.remove('active'));
@@ -448,11 +464,11 @@ function calcularTiempoTotal() {
   }
 }
 
-// ============ MODAL Y BÚSQUEDA DE MEDIA ============
+// ============ MODAL DE VIDEO EMBEBIDO ============
 function verMedia(nombre) {
   document.getElementById('modal-title').textContent = nombre;
-  document.getElementById('modal-yt-link').href = `https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + nombre)}`;
-  document.getElementById('modal-img-link').href = `https://www.google.com/search?q=${encodeURIComponent('ejercicio kinesiologia ' + nombre + ' posicion inicial y final')}&tbm=isch`;
+  const videoUrl = getVideoUrl(nombre);
+  document.getElementById('video-frame').src = videoUrl;
   document.getElementById('media-modal').classList.remove('hidden');
 }
 
@@ -463,6 +479,7 @@ function verTest() {
 
 function closeModal() {
   document.getElementById('media-modal').classList.add('hidden');
+  document.getElementById('video-frame').src = ''; // Detiene el video
 }
 
 // ============ EVIDENCIA Y BIBLIOGRAFÍA ============
@@ -509,7 +526,8 @@ function renderGrafico() {
       labels: historial.map(h => 'S' + h.sesion),
       datasets: [
         { label: 'Reposo', data: historial.map(h => h.eva_reposo), borderColor: '#0f766e', backgroundColor: 'rgba(15,118,110,0.1)', tension: 0.4, fill: true, pointRadius: 6 },
-        { label: 'Movimiento', data: historial.map(h => h.eva_movimiento), borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.1)', tension: 0.4, fill: true, pointRadius: 6 }
+        { label: 'Activo', data: historial.map(h => h.eva_activo), borderColor: '#2a7ab0', backgroundColor: 'rgba(42,122,176,0.1)', tension: 0.4, fill: true, pointRadius: 6 },
+        { label: 'Pasivo', data: historial.map(h => h.eva_pasivo), borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.1)', tension: 0.4, fill: true, pointRadius: 6 }
       ]
     },
     options: { 
@@ -574,14 +592,16 @@ function saveSession() {
     sesion: state.currentSession.n,
     fecha: new Date().toISOString(),
     eva_reposo: state.currentSession.eva_reposo,
-    eva_movimiento: state.currentSession.eva_movimiento,
+    eva_activo: state.currentSession.eva_activo,
+    eva_pasivo: state.currentSession.eva_pasivo,
     notas,
     zonasDolor: state.currentSession.zonasDolor
   });
   
   let avanzar = true;
-  if (state.currentSession.eva_reposo > 3 || state.currentSession.eva_movimiento > 3) {
-    avanzar = confirm('El dolor es mayor a 3/10.\n\n¿Querés avanzar a la siguiente sesión de todos modos?');
+  const dolorMax = Math.max(state.currentSession.eva_reposo, state.currentSession.eva_activo, state.currentSession.eva_pasivo);
+  if (dolorMax > 3) {
+    avanzar = confirm('El dolor es mayor a 3/10 en al menos una escala.\n\n¿Querés avanzar a la siguiente sesión de todos modos?');
   }
   
   if (avanzar) {

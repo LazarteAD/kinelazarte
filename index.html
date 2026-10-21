@@ -20,7 +20,7 @@
   </header>
 
   <main class="main-content">
-    <!-- LOGIN -->
+    <!-- VISTA 1: LOGIN -->
     <div id="login-view" class="view">
       <div class="card login-card">
         <h2>Acceso Profesional</h2>
@@ -30,7 +30,7 @@
       </div>
     </div>
 
-    <!-- DASHBOARD -->
+    <!-- VISTA 2: DASHBOARD -->
     <div id="dashboard-view" class="view hidden">
       <div class="header-actions">
         <h2>Mis Pacientes</h2>
@@ -40,7 +40,7 @@
       <button onclick="showView('new-patient-view')" class="btn-fab">+</button>
     </div>
 
-    <!-- CALENDARIO -->
+    <!-- VISTA 3: CALENDARIO -->
     <div id="calendar-view" class="view hidden">
       <div class="header-actions">
         <h2>Agenda de Turnos</h2>
@@ -49,34 +49,40 @@
       <div class="card" id="calendar-container"></div>
     </div>
 
-    <!-- NUEVO PACIENTE -->
+    <!-- VISTA 4: NUEVO PACIENTE -->
     <div id="new-patient-view" class="view hidden">
       <div class="header-actions">
-        <h2>Nuevo Paciente</h2><button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
+        <h2>Nuevo Paciente</h2>
+        <button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
       </div>
       <div class="card">
-        <label>Nombre completo</label><input type="text" id="new-patient-name">
-        <label>WhatsApp (código país, sin +)</label><input type="tel" id="new-patient-phone">
+        <label>Nombre completo</label>
+        <input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
+        
+        <label>WhatsApp (código país, sin +)</label>
+        <input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
+        
         <div class="grid-2">
-          <div><label>Edad</label><input type="number" id="new-patient-age"></div>
-          <div><label>Peso (kg)</label><input type="number" id="new-patient-weight"></div>
+          <div><label>Edad</label><input type="number" id="new-patient-age" placeholder="Años"></div>
+          <div><label>Peso (kg)</label><input type="number" id="new-patient-weight" placeholder="kg"></div>
         </div>
-        <label>Diagnóstico</label><select id="new-patient-pathology"></select>
+        
         <label>Nivel de Actividad</label>
         <select id="new-patient-activity">
           <option value="sedentario">Sedentario</option>
-          <option value="activo">Activo</option>
-          <option value="deportista">Deportista</option>
+          <option value="activo">Activo (1-3 días/sem)</option>
+          <option value="deportista">Deportista (4+ días/sem)</option>
           <option value="laboral_pesado">Trabajo físico exigente</option>
         </select>
-        
+
         <label>Anamnesis (Motivo de consulta)</label>
-        <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas..."></textarea>
+        <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas que empeora al estar sentado..."></textarea>
 
         <label>Medicación y su influencia</label>
-        <textarea id="new-patient-meds" placeholder="Ej: Toma Ibuprofeno 400mg cada 8hs..."></textarea>
+        <textarea id="new-patient-meds" placeholder="Ej: Toma Ibuprofeno 400mg cada 8hs (puede enmascarar el dolor)..."></textarea>
 
-        <label>Fecha y Hora del Turno</label><input type="datetime-local" id="new-patient-turno">
+        <label>Fecha y Hora del Turno (opcional)</label>
+        <input type="datetime-local" id="new-patient-turno">
         
         <fieldset class="flags-fieldset red-border">
           <legend>🚩 Banderas Rojas (Derivación Urgente)</legend>
@@ -90,35 +96,31 @@
 
         <fieldset class="flags-fieldset yellow-border">
           <legend>🟡 Banderas Amarillas (Psicosociales)</legend>
-          <label class="check-item"><input type="checkbox" value="yellow_kinesiofobia" class="yellow-flag"> <b>Kinesiofobia</b></label>
+          <label class="check-item"><input type="checkbox" value="yellow_kinesiofobia" class="yellow-flag"> <b>Kinesiofobia</b> (miedo al movimiento)</label>
           <label class="check-item"><input type="checkbox" value="yellow_catastrofismo" class="yellow-flag"> Catastrofismo</label>
           <label class="check-item"><input type="checkbox" value="yellow_animo" class="yellow-flag"> Bajo ánimo / ansiedad</label>
-          <label class="check-item"><input type="checkbox" value="yellow_laboral" class="yellow-flag"> Insatisfacción laboral</label>
+          <label class="check-item"><input type="checkbox" value="yellow_laboral" class="yellow-flag"> Insatisfacción laboral / litigio</label>
         </fieldset>
 
         <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente</button>
       </div>
     </div>
 
-    <!-- SESIÓN -->
+    <!-- VISTA 5: SESIÓN -->
     <div id="session-view" class="view hidden">
       <div class="session-topbar">
-        <button onclick="showView('dashboard-view')" class="btn-icon">←</button>
+        <button onclick="showView('dashboard-view'); renderPatientList();" class="btn-icon">←</button>
         <h2 id="session-patient-name">Paciente</h2>
         <button onclick="exportarHistoria()" class="btn-icon" title="Exportar Historia Completa">🖨️</button>
       </div>
 
       <div class="tab-content">
-        <!-- PESTAÑA 1: MAPA Y ANAMNESIS -->
+        <!-- PESTAÑA 1: MAPA -->
         <div id="tab-mapa" class="tab-pane">
-          <!-- RESUMEN DE ANAMNESIS CON BOTÓN EDITAR -->
           <div class="card anamnesis-card">
-            <div style="display:flex; justify-content:space-between; align-items:start;">
-              <h3>📋 Resumen Clínico</h3>
-              <button onclick="editarAnamnesis()" class="btn-icon" style="font-size:1rem;" title="Editar Anamnesis">✏️</button>
-            </div>
-            <p id="anamnesis-resumen" class="sub" style="margin-bottom:10px;"></p>
-            <div id="meds-resumen" class="sub" style="color:var(--warning); margin-bottom:10px;"></div>
+            <h3>📋 Resumen Clínico</h3>
+            <p id="anamnesis-resumen" class="sub" style="margin-bottom:10px; font-style:italic;"></p>
+            <div id="meds-resumen" class="sub" style="margin-bottom:10px;"></div>
             <div id="flags-alert"></div>
           </div>
           
@@ -150,18 +152,26 @@
               </svg>
             </div>
           </div>
+          
           <div class="card">
             <h3>Evaluación EVA</h3>
             <div class="grid-2">
-              <div class="eva-box"><label>Reposo</label><div class="eva-value" id="eva-reposo-val">0</div><input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)"></div>
-              <div class="eva-box"><label>Movimiento</label><div class="eva-value" id="eva-movimiento-val">0</div><input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)"></div>
+              <div class="eva-box">
+                <label>Reposo</label>
+                <div class="eva-value" id="eva-reposo-val">0</div>
+                <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
+              </div>
+              <div class="eva-box">
+                <label>Movimiento</label>
+                <div class="eva-value" id="eva-movimiento-val">0</div>
+                <input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)">
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- PESTAÑA 2: TERAPIA (CON DOSIFICACIÓN Y TIEMPO TOTAL) -->
+        <!-- PESTAÑA 2: TERAPIA -->
         <div id="tab-ejercicios" class="tab-pane hidden">
-          <!-- RESUMEN DE TIEMPO -->
           <div class="card" style="background:var(--primary-light); border:1px solid var(--primary);">
             <h3 style="margin:0;">⏱️ Tiempo Total de Sesión</h3>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
@@ -169,18 +179,20 @@
               <div style="text-align:center;"><small style="color:var(--text-muted);">Agentes</small><br><b id="time-agentes" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
               <div style="text-align:center;"><small style="color:var(--text-muted);">Total</small><br><b id="time-total" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
             </div>
-            <div id="time-alert" style="margin-top:10px; font-size:0.8rem; font-weight:bold; color:var(--danger);"></div>
+            <div id="time-alert" style="margin-top:10px; font-size:0.8rem; font-weight:bold;"></div>
           </div>
 
           <div class="card">
             <h3>1. Agentes Físicos</h3>
             <div id="agents-list"></div>
           </div>
+          
           <div class="card">
-            <h3>2. Consultorio</h3>
+            <h3>2. Ejercicios en Consultorio</h3>
             <div id="suggested-exercises" class="chips-container" style="max-height: 150px; overflow-y: auto;"></div>
             <ul id="selected-consultorio" class="selected-list"></ul>
           </div>
+          
           <div class="card border-teal">
             <h3>3. Plan para Casa</h3>
             <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2">✨ Armar rutina automática</button>
@@ -239,6 +251,7 @@
   <div id="print-home-area" class="print-only"></div>
   
   <div id="toast" class="toast hidden"></div>
+  
   <script src="data/patologias.js"></script>
   <script src="app.js"></script>
 </body>

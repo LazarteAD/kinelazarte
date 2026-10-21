@@ -21,7 +21,7 @@
   </header>
 
   <main class="main-content">
-    <!-- VISTA 1: LOGIN SEGURO -->
+    <!-- VISTA 1: LOGIN -->
     <div id="login-view" class="view">
       <div class="card login-card">
         <h2>Acceso Profesional</h2>
@@ -97,6 +97,21 @@
           <p class="sub" id="patologia-test">Test</p>
           <button onclick="verTest()" class="btn-secondary w-100 mt-1">🔍 Ver Test Clínico</button>
         </div>
+
+        <!-- PANEL DE EVOLUCIÓN -->
+        <div class="card">
+          <h3>📊 Evolución del Dolor</h3>
+          <div id="chart-evolucion" style="width:100%; height:150px; background:var(--bg); border-radius:12px; margin-top:10px; position:relative;">
+            <canvas id="canvas-evolucion" style="width:100%; height:100%;"></canvas>
+          </div>
+        </div>
+
+        <!-- PLAN DE SESIONES -->
+        <div class="card">
+          <h3>📋 Plan de 10 Sesiones</h3>
+          <div id="lista-sesiones"></div>
+        </div>
+
         <div class="card">
           <h3>1. Ejercicios en Consultorio</h3>
           <div id="suggested-exercises" class="chips-container"></div>
@@ -112,7 +127,7 @@
           <div id="agents-list"></div>
         </div>
         <div class="card">
-          <h3>4. Evaluación y Evolución</h3>
+          <h3>4. Evaluación y Cierre</h3>
           <div class="grid-2">
             <div class="eva-box">
               <label>Dolor Reposo (EVA)</label>
@@ -127,6 +142,7 @@
           </div>
           <textarea id="session-notes" placeholder="Notas clínicas, evolución..."></textarea>
           <button onclick="saveSession()" class="btn-primary mt-2">💾 Guardar Sesión</button>
+          <button onclick="sendWhatsApp()" class="btn-whatsapp mt-1" style="background:#25D366; color:white; border-radius:12px; width:100%; padding:14px; font-weight:bold; border:none; margin-top:10px;">📲 Enviar Tarea por WhatsApp</button>
         </div>
       </div>
     </div>
@@ -137,15 +153,15 @@
     <button onclick="showView('new-patient-view')" class="nav-item highlight"><span class="nav-icon">+</span> Paciente</button>
   </nav>
 
-  <!-- MODAL DE VIDEO (Buscador oficial de YouTube) -->
-  <div id="video-modal" class="modal hidden">
+  <!-- MODAL DE IMÁGENES Y VIDEO -->
+  <div id="media-modal" class="modal hidden">
     <div class="modal-content">
       <span class="modal-close" onclick="closeModal()">×</span>
       <h3 id="modal-title">Demostración</h3>
       <div style="text-align:center; padding: 20px 0;">
-        <p style="margin-bottom:15px; font-size:14px;">Buscá el video explicativo en YouTube o imágenes en Google:</p>
-        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary" style="text-decoration:none; display:block; margin-bottom:10px; text-align:center;">▶ Buscar en YouTube</a>
-        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary" style="text-decoration:none; display:block; text-align:center;">🖼️ Buscar en Google Imágenes</a>
+        <p style="margin-bottom:15px; font-size:14px;">Buscá la explicación visual:</p>
+        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary" style="text-decoration:none; display:block; margin-bottom:10px; text-align:center;">▶ Ver Video en YouTube</a>
+        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary" style="text-decoration:none; display:block; text-align:center;">🖼️ Ver Imágenes (Posición Inicial/Final)</a>
       </div>
     </div>
   </div>

@@ -76,10 +76,10 @@
         </select>
 
         <label>Anamnesis (Motivo de consulta)</label>
-        <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas que empeora al estar sentado..."></textarea>
+        <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas..."></textarea>
 
         <label>Medicación y su influencia</label>
-        <textarea id="new-patient-meds" placeholder="Ej: Toma Ibuprofeno 400mg cada 8hs (puede enmascarar el dolor)..."></textarea>
+        <textarea id="new-patient-meds" placeholder="Ej: Toma Ibuprofeno 400mg cada 8hs..."></textarea>
 
         <label>Fecha y Hora del Turno (opcional)</label>
         <input type="datetime-local" id="new-patient-turno">
@@ -118,7 +118,10 @@
         <!-- PESTAÑA 1: MAPA -->
         <div id="tab-mapa" class="tab-pane">
           <div class="card anamnesis-card">
-            <h3>📋 Resumen Clínico</h3>
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+              <h3>📋 Resumen Clínico</h3>
+              <button onclick="editarAnamnesis()" class="btn-icon" style="font-size:1rem;" title="Editar Anamnesis">✏️</button>
+            </div>
             <p id="anamnesis-resumen" class="sub" style="margin-bottom:10px; font-style:italic;"></p>
             <div id="meds-resumen" class="sub" style="margin-bottom:10px;"></div>
             <div id="flags-alert"></div>
@@ -130,27 +133,39 @@
             <button onclick="verTest()" class="btn-secondary w-100 mt-1">🔍 Ver Test Clínico</button>
           </div>
           
+          <!-- MAPA CORPORAL INTERACTIVO -->
           <div class="card text-center">
-            <h3>📍 Foco de Dolor</h3>
+            <h3>📍 Mapa de Dolor</h3>
+            <p class="sub" style="margin-bottom:15px;">Tocá las zonas para marcar/desmarcar dolor.</p>
             <div class="body-map-container">
-              <svg id="body-svg" viewBox="0 0 200 400">
-                <circle cx="100" cy="40" r="25" fill="#e2e8f0" />
-                <rect x="90" y="65" width="20" height="20" fill="#e2e8f0" />
-                <rect x="60" y="85" width="80" height="120" rx="10" fill="#e2e8f0" />
-                <rect x="30" y="90" width="25" height="100" rx="10" fill="#e2e8f0" />
-                <rect x="145" y="90" width="25" height="100" rx="10" fill="#e2e8f0" />
-                <rect x="65" y="210" width="30" height="150" rx="10" fill="#e2e8f0" />
-                <rect x="105" y="210" width="30" height="150" rx="10" fill="#e2e8f0" />
-                <circle id="zone-cuello" cx="100" cy="75" r="15" fill="#e11d48" opacity="0" />
-                <circle id="zone-hombro" cx="40" cy="100" r="20" fill="#e11d48" opacity="0" />
-                <circle id="zone-hombro-der" cx="160" cy="100" r="20" fill="#e11d48" opacity="0" />
-                <circle id="zone-lumbar" cx="100" cy="180" r="25" fill="#e11d48" opacity="0" />
-                <circle id="zone-rodilla" cx="80" cy="300" r="18" fill="#e11d48" opacity="0" />
-                <circle id="zone-rodilla-der" cx="120" cy="300" r="18" fill="#e11d48" opacity="0" />
-                <circle id="zone-tobillo" cx="80" cy="360" r="12" fill="#e11d48" opacity="0" />
-                <circle id="zone-tobillo-der" cx="120" cy="360" r="12" fill="#e11d48" opacity="0" />
+              <svg id="body-svg" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
+                <g fill="#e2e8f0" stroke="#cbd5e1" stroke-width="2">
+                  <circle cx="100" cy="40" r="25" />
+                  <rect x="85" y="65" width="30" height="15" rx="5" />
+                  <path d="M 60 80 Q 100 70 140 80 L 150 180 Q 100 190 50 180 Z" />
+                  <rect x="30" y="90" width="20" height="90" rx="10" />
+                  <rect x="150" y="90" width="20" height="90" rx="10" />
+                  <rect x="65" y="185" width="30" height="140" rx="10" />
+                  <rect x="105" y="185" width="30" height="140" rx="10" />
+                </g>
+                <circle id="zone-cabeza" cx="100" cy="40" r="25" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-cabeza')" />
+                <circle id="zone-cuello" cx="100" cy="72" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-cuello')" />
+                <circle id="zone-hombro-izq" cx="40" cy="95" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-hombro-izq')" />
+                <circle id="zone-hombro-der" cx="160" cy="95" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-hombro-der')" />
+                <circle id="zone-codo-izq" cx="40" cy="150" r="12" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-codo-izq')" />
+                <circle id="zone-codo-der" cx="160" cy="150" r="12" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-codo-der')" />
+                <circle id="zone-muneca-izq" cx="40" cy="180" r="10" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-muneca-izq')" />
+                <circle id="zone-muneca-der" cx="160" cy="180" r="10" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-muneca-der')" />
+                <circle id="zone-dorsal" cx="100" cy="110" r="20" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-dorsal')" />
+                <circle id="zone-lumbar" cx="100" cy="160" r="22" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-lumbar')" />
+                <circle id="zone-cadera" cx="100" cy="190" r="18" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-cadera')" />
+                <circle id="zone-rodilla-izq" cx="80" cy="260" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-rodilla-izq')" />
+                <circle id="zone-rodilla-der" cx="120" cy="260" r="15" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-rodilla-der')" />
+                <circle id="zone-tobillo-izq" cx="80" cy="325" r="12" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-tobillo-izq')" />
+                <circle id="zone-tobillo-der" cx="120" cy="325" r="12" fill="var(--danger)" opacity="0" class="zone" onclick="toggleZone('zone-tobillo-der')" />
               </svg>
             </div>
+            <div id="pain-zones-summary" style="margin-top:10px; font-size:0.85rem; font-weight:bold; color:var(--danger);"></div>
           </div>
           
           <div class="card">
@@ -173,7 +188,7 @@
         <!-- PESTAÑA 2: TERAPIA -->
         <div id="tab-ejercicios" class="tab-pane hidden">
           <div class="card" style="background:var(--primary-light); border:1px solid var(--primary);">
-            <h3 style="margin:0;">⏱️ Tiempo Total de Sesión</h3>
+            <h3 style="margin:0;">⏱️ Tiempo Total en Consultorio</h3>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
               <div style="text-align:center;"><small style="color:var(--text-muted);">Ejercicios</small><br><b id="time-ejercicios" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
               <div style="text-align:center;"><small style="color:var(--text-muted);">Agentes</small><br><b id="time-agentes" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
@@ -192,16 +207,6 @@
             <div id="suggested-exercises" class="chips-container" style="max-height: 150px; overflow-y: auto;"></div>
             <ul id="selected-consultorio" class="selected-list"></ul>
           </div>
-          
-          <div class="card border-teal">
-            <h3>3. Plan para Casa</h3>
-            <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2">✨ Armar rutina automática</button>
-            <ul id="selected-casa" class="selected-list"></ul>
-            <div class="grid-2 mt-2">
-              <button onclick="imprimirPlanCasa()" class="btn-secondary" style="background:#fff; border:1px solid var(--primary); color:var(--primary);">🖨️ Imprimir</button>
-              <button onclick="sendWhatsApp()" class="btn-whatsapp">📲 WhatsApp</button>
-            </div>
-          </div>
         </div>
 
         <!-- PESTAÑA 3: EVOLUCIÓN -->
@@ -216,12 +221,26 @@
           </div>
         </div>
 
-        <!-- PESTAÑA 4: CIERRE -->
+        <!-- PESTAÑA 4: CIERRE Y CASA -->
         <div id="tab-cierre" class="tab-pane hidden">
           <div class="card">
             <h3>Notas Clínicas de la Sesión</h3>
             <textarea id="session-notes" placeholder="Evolución de hoy, ajustes, etc..."></textarea>
-            <button onclick="saveSession()" class="btn-primary mt-2">💾 Guardar Sesión</button>
+          </div>
+
+          <div class="card border-teal">
+            <h3>🏠 Plan para Casa</h3>
+            <p class="sub">Armá la rutina según cómo le fue al paciente hoy.</p>
+            <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2">✨ Armar rutina automática</button>
+            <ul id="selected-casa" class="selected-list"></ul>
+            <div class="grid-2 mt-2">
+              <button onclick="imprimirPlanCasa()" class="btn-secondary" style="background:#fff; border:1px solid var(--primary); color:var(--primary);">🖨️ Imprimir</button>
+              <button onclick="sendWhatsApp()" class="btn-whatsapp">📲 WhatsApp</button>
+            </div>
+          </div>
+
+          <div class="card" style="position: sticky; bottom: 80px; z-index: 10; background: #fff; border: 2px solid var(--primary);">
+            <button onclick="saveSession()" class="btn-primary" style="margin:0;">💾 Guardar Sesión y Cerrar</button>
           </div>
         </div>
       </div>
@@ -235,7 +254,6 @@
     </div>
   </main>
 
-  <!-- MODAL DE MEDIA -->
   <div id="media-modal" class="modal hidden">
     <div class="modal-content">
       <span class="modal-close" onclick="closeModal()">×</span>
@@ -249,7 +267,6 @@
 
   <div id="print-area" class="print-only"></div>
   <div id="print-home-area" class="print-only"></div>
-  
   <div id="toast" class="toast hidden"></div>
   
   <script src="data/patologias.js"></script>

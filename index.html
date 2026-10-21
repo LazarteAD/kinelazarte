@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f0f4f8">
   <title>KineFlow Clinical</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -14,18 +13,17 @@
   <script src="data/evidencia.js"></script>
 </head>
 <body>
+  <!-- HEADER -->
   <header class="app-header">
     <div class="brand">
       <div class="logo-icon">K</div>
       <div><h1>KineFlow <span>Clinical</span></h1><small>Rehabilitación con evidencia</small></div>
     </div>
-    <div class="header-right">
-      <div id="sync-status" class="sync-indicator offline">Local</div>
-    </div>
+    <div id="sync-status" class="sync-indicator offline">Local</div>
   </header>
 
-  <main class="main-content">
-    <!-- VISTA 1: LOGIN -->
+  <main class="main-content" style="max-width: 1100px; margin: 0 auto; padding: 24px;">
+    <!-- VISTA LOGIN -->
     <div id="login-view" class="view">
       <div class="card login-card glass">
         <div class="login-logo">🩺</div>
@@ -33,21 +31,21 @@
         <p class="sub">Ingresá a tu consultorio digital</p>
         <label>Email</label><input type="email" id="login-email" placeholder="kine@correo.com">
         <label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••">
-        <button onclick="login()" class="btn-primary mt-2 ripple">Ingresar</button>
+        <button onclick="login()" class="btn-primary mt-2">Ingresar</button>
       </div>
     </div>
 
-    <!-- VISTA 2: DASHBOARD -->
+    <!-- VISTA DASHBOARD -->
     <div id="dashboard-view" class="view hidden">
       <div class="header-actions">
         <h2>Mis Pacientes</h2>
         <button onclick="showView('calendar-view'); initCalendar();" class="btn-icon" title="Ver Calendario">📅</button>
       </div>
       <div id="patient-list" class="patient-grid"></div>
-      <button onclick="showView('new-patient-view')" class="btn-fab ripple">+</button>
+      <button onclick="showView('new-patient-view')" class="btn-fab">+</button>
     </div>
 
-    <!-- VISTA 3: CALENDARIO -->
+    <!-- VISTA CALENDARIO -->
     <div id="calendar-view" class="view hidden">
       <div class="header-actions">
         <h2>Agenda de Turnos</h2>
@@ -56,12 +54,9 @@
       <div class="card glass" id="calendar-container"></div>
     </div>
 
-    <!-- VISTA 4: NUEVO PACIENTE -->
+    <!-- VISTA NUEVO PACIENTE -->
     <div id="new-patient-view" class="view hidden">
-      <div class="header-actions">
-        <h2>Nuevo Paciente</h2>
-        <button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
-      </div>
+      <div class="header-actions"><h2>Nuevo Paciente</h2><button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button></div>
       <div class="card glass">
         <label>Nombre completo</label><input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
         <label>WhatsApp (código país, sin +)</label><input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
@@ -72,17 +67,13 @@
         <label>Nivel de Actividad</label>
         <select id="new-patient-activity">
           <option value="sedentario">Sedentario</option>
-          <option value="activo">Activo (1-3 días/sem)</option>
-          <option value="deportista">Deportista (4+ días/sem)</option>
+          <option value="activo">Activo</option>
+          <option value="deportista">Deportista</option>
           <option value="laboral_pesado">Trabajo físico exigente</option>
         </select>
-        <label>Anamnesis</label>
-        <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas..."></textarea>
-        <label>Medicación y su influencia</label>
-        <textarea id="new-patient-meds" placeholder="Ej: Ibuprofeno 400mg cada 8hs..."></textarea>
-        <label>Fecha y Hora del Turno (opcional)</label>
-        <input type="datetime-local" id="new-patient-turno">
-        
+        <label>Anamnesis</label><textarea id="new-patient-anamnesis" placeholder="Motivo de consulta..."></textarea>
+        <label>Medicación y su influencia</label><textarea id="new-patient-meds" placeholder="Fármacos relevantes..."></textarea>
+        <label>Fecha y Hora del Turno (opcional)</label><input type="datetime-local" id="new-patient-turno">
         <fieldset class="flags-fieldset red-border">
           <legend>🚩 Banderas Rojas (Derivación)</legend>
           <label class="check-item"><input type="checkbox" value="red_dolor_nocturno" class="red-flag"> Dolor nocturno no mecánico</label>
@@ -90,22 +81,18 @@
           <label class="check-item"><input type="checkbox" value="red_fiebre" class="red-flag"> Fiebre o malestar</label>
           <label class="check-item"><input type="checkbox" value="red_cancer" class="red-flag"> Antecedente de cáncer</label>
           <label class="check-item"><input type="checkbox" value="red_neurologico" class="red-flag"> Déficit neurológico</label>
-          <label class="check-item"><input type="checkbox" value="red_esfinteres" class="red-flag"> Disfunción de esfínteres</label>
         </fieldset>
-
         <fieldset class="flags-fieldset yellow-border">
           <legend>🟡 Banderas Amarillas (Psicosociales)</legend>
           <label class="check-item"><input type="checkbox" value="yellow_kinesiofobia" class="yellow-flag"> <b>Kinesiofobia</b></label>
           <label class="check-item"><input type="checkbox" value="yellow_catastrofismo" class="yellow-flag"> Catastrofismo</label>
           <label class="check-item"><input type="checkbox" value="yellow_animo" class="yellow-flag"> Bajo ánimo / ansiedad</label>
-          <label class="check-item"><input type="checkbox" value="yellow_laboral" class="yellow-flag"> Insatisfacción laboral</label>
         </fieldset>
-
-        <button onclick="createPatient()" class="btn-primary mt-2 ripple">Guardar Paciente</button>
+        <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente</button>
       </div>
     </div>
 
-    <!-- VISTA 5: SESIÓN -->
+    <!-- VISTA SESIÓN (NUEVA ESTRUCTURA) -->
     <div id="session-view" class="view hidden">
       <div class="session-topbar">
         <button onclick="showView('dashboard-view'); renderPatientList();" class="btn-icon">←</button>
@@ -113,150 +100,106 @@
         <button onclick="exportarHistoria()" class="btn-icon">🖨️</button>
       </div>
 
-      <div class="progress-bar-container">
-        <div class="progress-bar-fill" id="session-progress" style="width:0%"></div>
-      </div>
-
       <div class="tab-content">
-        <!-- PESTAÑA MAPA -->
-        <div id="tab-mapa" class="tab-pane">
-          <div class="card anamnesis-card glass">
-            <div style="display:flex; justify-content:space-between; align-items:start;">
-              <h3>📋 Resumen Clínico</h3>
-              <button onclick="editarAnamnesis()" class="btn-icon" style="font-size:1rem;">✏️</button>
+        <!-- PESTAÑA 1: PACIENTE (Layout de 2 Columnas) -->
+        <div id="tab-paciente" class="tab-pane">
+          <div class="patient-layout">
+            <!-- Columna Izquierda: Resumen Clínico -->
+            <div class="clinical-summary">
+              <div class="card glass">
+                <h3>📋 Resumen Clínico</h3>
+                <div class="anamnesis-text" id="anamnesis-resumen"></div>
+                <div class="meds-box" id="meds-resumen"></div>
+                <div id="flags-alert" style="margin-top: 16px;"></div>
+              </div>
             </div>
-            <p id="anamnesis-resumen" class="sub" style="margin-bottom:10px; font-style:italic;"></p>
-            <div id="meds-resumen" class="sub" style="margin-bottom:10px;"></div>
-            <div id="flags-alert"></div>
+            <!-- Columna Derecha: Tests Clínicos -->
+            <div class="clinical-tests">
+              <div class="card glass">
+                <h3>🔍 Tests Clínicos</h3>
+                <div class="test-card">
+                  <h4 id="test-nombre"></h4>
+                  <p id="test-descripcion" class="sub"></p>
+                  <div class="test-visual" id="test-visual">[Imagen o Video Demostrativo]</div>
+                  <button onclick="verTest()" class="btn-secondary">▶ Ver Demostración</button>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <div class="card glass text-center">
-            <h3 id="patologia-nombre">Patología</h3>
-            <p class="sub" id="patologia-test">Test</p>
-            <button onclick="verTest()" class="btn-secondary w-100 mt-1 ripple">🔍 Ver Test Clínico</button>
-          </div>
-
-          <div class="card glass">
-            <h3>📚 Evidencia Científica</h3>
+          <!-- Pie de Página: Evidencia y Bibliografía -->
+          <div class="evidence-footer">
+            <h4>📚 Evidencia Científica y Bibliografía</h4>
             <div id="evidencia-panel"></div>
-          </div>
-
-          <details class="card glass">
-            <summary style="cursor:pointer; font-weight:700; color:var(--primary);">📖 Bibliografía completa</summary>
-            <div id="bibliografia-list" style="margin-top:12px; font-size:0.85rem; line-height:1.6;"></div>
-          </details>
-          
-          <div class="card glass text-center">
-            <h3>📍 Mapa de Dolor</h3>
-            <p class="sub">Tocá las zonas para marcar dolor.</p>
-            <div class="body-map-container">
-              <svg id="body-svg" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
-                <g fill="currentColor" stroke="var(--border)" stroke-width="2" opacity="0.4">
-                  <circle cx="100" cy="40" r="25" />
-                  <rect x="85" y="65" width="30" height="15" rx="5" />
-                  <path d="M 60 80 Q 100 70 140 80 L 150 180 Q 100 190 50 180 Z" />
-                  <rect x="30" y="90" width="20" height="90" rx="10" />
-                  <rect x="150" y="90" width="20" height="90" rx="10" />
-                  <rect x="65" y="185" width="30" height="140" rx="10" />
-                  <rect x="105" y="185" width="30" height="140" rx="10" />
-                </g>
-                <circle id="zone-cabeza" cx="100" cy="40" r="25" class="zone" onclick="toggleZone('zone-cabeza')" />
-                <circle id="zone-cuello" cx="100" cy="72" r="15" class="zone" onclick="toggleZone('zone-cuello')" />
-                <circle id="zone-hombro-izq" cx="40" cy="95" r="15" class="zone" onclick="toggleZone('zone-hombro-izq')" />
-                <circle id="zone-hombro-der" cx="160" cy="95" r="15" class="zone" onclick="toggleZone('zone-hombro-der')" />
-                <circle id="zone-codo-izq" cx="40" cy="150" r="12" class="zone" onclick="toggleZone('zone-codo-izq')" />
-                <circle id="zone-codo-der" cx="160" cy="150" r="12" class="zone" onclick="toggleZone('zone-codo-der')" />
-                <circle id="zone-muneca-izq" cx="40" cy="180" r="10" class="zone" onclick="toggleZone('zone-muneca-izq')" />
-                <circle id="zone-muneca-der" cx="160" cy="180" r="10" class="zone" onclick="toggleZone('zone-muneca-der')" />
-                <circle id="zone-dorsal" cx="100" cy="110" r="20" class="zone" onclick="toggleZone('zone-dorsal')" />
-                <circle id="zone-lumbar" cx="100" cy="160" r="22" class="zone" onclick="toggleZone('zone-lumbar')" />
-                <circle id="zone-cadera" cx="100" cy="190" r="18" class="zone" onclick="toggleZone('zone-cadera')" />
-                <circle id="zone-rodilla-izq" cx="80" cy="260" r="15" class="zone" onclick="toggleZone('zone-rodilla-izq')" />
-                <circle id="zone-rodilla-der" cx="120" cy="260" r="15" class="zone" onclick="toggleZone('zone-rodilla-der')" />
-                <circle id="zone-tobillo-izq" cx="80" cy="325" r="12" class="zone" onclick="toggleZone('zone-tobillo-izq')" />
-                <circle id="zone-tobillo-der" cx="120" cy="325" r="12" class="zone" onclick="toggleZone('zone-tobillo-der')" />
-              </svg>
-            </div>
-            <div id="pain-zones-summary"></div>
-          </div>
-          
-          <div class="card glass">
-            <h3>Evaluación EVA</h3>
-            <div class="grid-2">
-              <div class="eva-box"><label>Reposo</label><div class="eva-value" id="eva-reposo-val">0</div><input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)"></div>
-              <div class="eva-box"><label>Movimiento</label><div class="eva-value" id="eva-movimiento-val">0</div><input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)"></div>
-            </div>
+            <div id="bibliografia-list" style="margin-top: 16px;"></div>
           </div>
         </div>
 
-        <!-- PESTAÑA TERAPIA -->
-        <div id="tab-ejercicios" class="tab-pane hidden">
-          <div class="card glass time-card">
-            <h3>⏱️ Tiempo de Sesión</h3>
-            <div class="time-grid">
-              <div><small>Ejercicios</small><b id="time-ejercicios">0 min</b></div>
-              <div><small>Agentes</small><b id="time-agentes">0 min</b></div>
-              <div><small>Total</small><b id="time-total">0 min</b></div>
+        <!-- PESTAÑA 2: TERAPIA (Módulo Mejorado) -->
+        <div id="tab-terapia" class="tab-pane hidden">
+          <!-- Selector de Tiempo -->
+          <div class="card glass">
+            <h3>⏱️ Duración de la Sesión</h3>
+            <div class="session-timer-selector">
+              <div class="timer-chip" data-time="40" onclick="selectSessionTime(40, this)">40 min</div>
+              <div class="timer-chip active" data-time="50" onclick="selectSessionTime(50, this)">50 min</div>
+              <div class="timer-chip" data-time="60" onclick="selectSessionTime(60, this)">60 min</div>
             </div>
-            <div id="time-alert" class="time-alert"></div>
+            <p class="sub" id="time-summary">Tiempo total: 0 min</p>
           </div>
 
+          <!-- Agentes Físicos -->
           <div class="card glass">
-            <h3>1. Agentes Físicos</h3>
-            <div id="agents-list"></div>
-          </div>
-          
-          <div class="card glass">
-            <h3>2. Ejercicios Consultorio</h3>
-            <div id="suggested-exercises" class="chips-container"></div>
-            <ul id="selected-consultorio" class="selected-list"></ul>
+            <h3>⚡ Agentes Físicos</h3>
+            <div id="agents-list" class="agent-selector"></div>
           </div>
 
-          <div class="card glass border-teal" id="rpg-card" style="display:none;">
-            <h3>🧘 RPG — Posturas de Souchard</h3>
-            <p class="sub">Posturas sostenidas de 20-30 min para trabajo de cadenas musculares.</p>
-            <div id="rpg-posturas-list"></div>
+          <!-- Ejercicios -->
+          <div class="card glass">
+            <h3>🏋️ Ejercicios</h3>
+            <div id="suggested-exercises" class="exercise-list"></div>
           </div>
         </div>
 
-        <!-- PESTAÑA EVOLUCIÓN -->
+        <!-- PESTAÑA 3: EVOLUCIÓN -->
         <div id="tab-evolucion" class="tab-pane hidden">
           <div class="card glass">
             <h3>📊 Evolución del Dolor</h3>
-            <div style="height:220px;"><canvas id="chart-evolucion"></canvas></div>
+            <div class="chart-container">
+              <canvas id="chart-evolucion"></canvas>
+            </div>
           </div>
           <div class="card glass">
             <h3>📋 Plan de 10 Sesiones</h3>
-            <div id="lista-sesiones"></div>
+            <div id="lista-sesiones" class="session-plan-list"></div>
           </div>
         </div>
 
-        <!-- PESTAÑA CIERRE -->
+        <!-- PESTAÑA 4: CIERRE (Rutina para Casa) -->
         <div id="tab-cierre" class="tab-pane hidden">
           <div class="card glass">
-            <h3>Notas Clínicas</h3>
+            <h3>📝 Notas de la Sesión</h3>
             <textarea id="session-notes" placeholder="Evolución de hoy..."></textarea>
           </div>
-
           <div class="card glass border-teal">
             <h3>🏠 Plan para Casa</h3>
-            <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2 ripple">✨ Rutina automática</button>
-            <ul id="selected-casa" class="selected-list"></ul>
-            <div class="grid-2 mt-2">
-              <button onclick="imprimirPlanCasa()" class="btn-secondary ripple">🖨️ Imprimir</button>
-              <button onclick="sendWhatsApp()" class="btn-whatsapp ripple">📲 WhatsApp</button>
+            <p class="sub">Generá la rutina de ejercicios simples para el hogar.</p>
+            <button onclick="generarRutinaCasa()" class="btn-secondary mt-1">✨ Generar Rutina Automática</button>
+            <div id="rutina-casa-preview" style="margin-top: 16px;"></div>
+            <div class="home-routine-actions">
+              <button onclick="imprimirPlanCasa()" class="btn-home-action btn-print">🖨️ Imprimir</button>
+              <button onclick="sendWhatsApp()" class="btn-home-action btn-whatsapp-home">📲 Enviar a WhatsApp</button>
             </div>
           </div>
-
-          <button onclick="saveSession()" class="btn-primary btn-save-fixed ripple">💾 Guardar Sesión</button>
+          <button onclick="saveSession()" class="btn-primary btn-save-fixed">💾 Guardar Sesión</button>
         </div>
       </div>
 
+      <!-- BARRA DE PESTAÑAS -->
       <nav class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('mapa', this)"><span>🗺️</span>Mapa</button>
-        <button class="tab-btn" onclick="switchTab('ejercicios', this)"><span>🏋️</span>Terapia</button>
+        <button class="tab-btn active" onclick="switchTab('paciente', this)"><span>🧑‍⚕️</span>Paciente</button>
+        <button class="tab-btn" onclick="switchTab('terapia', this)"><span>⚡</span>Terapia</button>
         <button class="tab-btn" onclick="switchTab('evolucion', this)"><span>📊</span>Evolución</button>
-        <button class="tab-btn" onclick="switchTab('cierre', this)"><span>📝</span>Cierre</button>
+        <button class="tab-btn" onclick="switchTab('cierre', this)"><span>🏠</span>Cierre</button>
       </nav>
     </div>
   </main>
@@ -267,8 +210,8 @@
       <span class="modal-close" onclick="closeModal()">×</span>
       <h3 id="modal-title">Demostración</h3>
       <div class="modal-actions">
-        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary ripple">▶ Ver Video</a>
-        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary ripple">🖼️ Ver Imágenes</a>
+        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary">▶ Ver Video</a>
+        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary">🖼️ Ver Imágenes</a>
       </div>
     </div>
   </div>

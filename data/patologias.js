@@ -1,3 +1,7 @@
+/* ============================================================
+   KINEFLOW CLINICAL - Base de Datos Completa
+   ============================================================ */
+
 const AGENTES = {
   calor: { nombre: "Termoterapia (Calor)", dosis: "15-20 min · 40-45°C", contraindica: ["cancer", "tvp", "infeccion", "sensib"] },
   frio: { nombre: "Crioterapia", dosis: "10-15 min · fase aguda", contraindica: ["sensib"] },
@@ -7,45 +11,68 @@ const AGENTES = {
   manual: { nombre: "Terapia Manual", dosis: "Movilización articular", contraindica: ["osteoporosis", "cancer", "tvp"] }
 };
 
+const MEDICAMENTOS = {
+  anticoagulantes: { nombre: "Anticoagulantes", efecto: "Riesgo de sangrado", contra: ["manual", "puncion"] },
+  corticoides: { nombre: "Corticoides crónicos", efecto: "Fragilidad ósea y tisular", contra: ["manual"] },
+  aines: { nombre: "AINEs crónicos", efecto: "Riesgo gastrointestinal", contra: [] },
+  opioides: { nombre: "Opioides", efecto: "Sedación y alteración de la percepción del dolor", contra: [] }
+};
+
 const DB = {
-  lumbalgia: {
-    nombre: "Lumbalgia mecánica", test: "Test de Lasègue", agentes: ["calor", "tens", "manual"],
-    ejercicios: {
-      consultorio: ["Movilidad pélvica en cuadrupedia", "Activación de core en decúbito supino", "Puente de glúteos en el piso"],
-      casa: ["Sentarse y pararse de la silla", "Caminata con obstáculos bajos"],
-      gimnasio: ["Peso muerto con barra hexagonal", "Prensa de piernas inclinada"],
-      bandas: ["Buenos días con banda elástica", "Pallof press con banda"],
-      pelotas: ["Puente de glúteos sobre pelota de estabilidad", "Plancha con antebrazos sobre pelota"]
-    }
-  },
-  cervicalgia: {
-    nombre: "Cervicalgia mecánica", test: "Test de Spurling", agentes: ["calor", "manual"],
-    ejercicios: {
-      consultorio: ["Movilidad cervical activa", "Retracción cervical (chin tuck)", "Activación de flexores profundos"],
-      casa: ["Chin tuck en sedestación frente a espejo", "Corrección postural en el trabajo"],
-      gimnasio: ["Remo en máquina sentado", "Jalón al pecho en polea alta"],
-      bandas: ["Remo con banda elástica", "Rotación externa de hombro con banda"],
-      pelotas: ["Control escapular con pelota en pared", "Ejercicios de estabilidad cervical con pelota"]
-    }
-  },
-  hombro: {
-    nombre: "Manguito rotador", test: "Test de Jobe (Empty Can)", agentes: ["frio", "us", "tens"],
-    ejercicios: {
-      consultorio: ["Péndulos de Codman", "Movilidad asistida con bastón", "Rotación externa con banda"],
-      casa: ["Alcance funcional a estantes", "Tareas de vestido e higiene"],
-      gimnasio: ["Press de hombro en máquina", "Remo en polea baja", "Elevaciones laterales con mancuernas"],
-      bandas: ["Rotación interna con banda", "Face pull con banda elástica"],
-      pelotas: ["Estabilización de hombro sobre pelota", "Ejercicios de control escapular con pelota"]
-    }
-  },
-  rodilla: {
-    nombre: "Gonartrosis", test: "Test de McMurray", agentes: ["calor", "frio", "tens", "magneto"],
-    ejercicios: {
-      consultorio: ["Movilidad activa de rodilla", "Bicicleta fija sin carga", "Isométrico de cuádriceps"],
-      casa: ["Sentarse y pararse de silla", "Subir y bajar un escalón bajo"],
-      gimnasio: ["Prensa de piernas", "Extensión de rodilla en máquina", "Sentadilla con barra"],
-      bandas: ["Sentadilla con banda elástica", "Monster walk con banda"],
-      pelotas: ["Sentadilla en pared con pelota suiza", "Puente de glúteos sobre pelota"]
-    }
-  }
+  // --- COLUMNA ---
+  lumbalgia: { nombre: "Lumbalgia mecánica", test: "Test de Lasègue", agentes: ["calor", "tens", "manual"], ejercicios: { consultorio: ["Movilidad pélvica en cuadrupedia", "Activación de core en decúbito supino", "Puente de glúteos en el piso"], casa: ["Sentarse y pararse de la silla", "Caminata con obstáculos bajos"], gimnasio: ["Peso muerto con barra hexagonal", "Prensa de piernas inclinada"], bandas: ["Buenos días con banda elástica", "Pallof press con banda"], pelotas: ["Puente de glúteos sobre pelota de estabilidad", "Plancha con antebrazos sobre pelota"] } },
+  cervicalgia: { nombre: "Cervicalgia mecánica", test: "Test de Spurling", agentes: ["calor", "manual"], ejercicios: { consultorio: ["Movilidad cervical activa", "Retracción cervical (chin tuck)", "Activación de flexores profundos"], casa: ["Chin tuck en sedestación frente a espejo", "Corrección postural en el trabajo"], gimnasio: ["Remo en máquina sentado", "Jalón al pecho en polea alta"], bandas: ["Remo con banda elástica", "Rotación externa de hombro con banda"], pelotas: ["Control escapular con pelota en pared", "Ejercicios de estabilidad cervical con pelota"] } },
+  ciatica: { nombre: "Ciática / Hernia discal", test: "Test de Lasègue cruzado", agentes: ["tens", "calor"], ejercicios: { consultorio: ["Movilización neural", "Estabilización lumbar", "Puente glúteo"], casa: ["Marcha corta", "Levantamiento con columna neutra"], gimnasio: ["Prensa parcial", "Peso muerto ligero"], bandas: ["Glúteo medio con banda", "Abducción"], pelotas: ["Core sobre pelota", "Bird-dog"] } },
+  hernia_dorsal: { nombre: "Hernia discal dorsal", test: "Test de Slump", agentes: ["tens", "calor"], ejercicios: { consultorio: ["Extensión torácica", "Respiración costal", "Y-T-W en prono", "Remo"], casa: ["Postura neutra", "Caminata erguida"], gimnasio: ["Remo en máquina", "Jalón"], bandas: ["Apertura torácica", "Remo"], pelotas: ["Extensión sobre pelota"] } },
+  espondilitis: { nombre: "Espondilitis Anquilosante", test: "Test de Schober", agentes: ["calor", "manual"], ejercicios: { consultorio: ["Extensión en prono (esfinge)", "Rotación de columna", "Respiración costal"], casa: ["Natación", "Postura contra pared"], gimnasio: ["Remo sentado", "Extensión lumbar en máquina"], bandas: ["Remo", "Extensión torácica"], pelotas: ["Extensión sobre pelota"] } },
+  escoliosis: { nombre: "Escoliosis idiopática", test: "Test de Adams", agentes: ["manual", "tens"], ejercicios: { consultorio: ["Elongación axial", "Respiración rotacional", "Auto-corrección frente a espejo"], casa: ["Mantener corrección en AVD", "Programa domiciliario"], gimnasio: ["Remo unilateral", "Jalón al pecho"], bandas: ["Remo con banda", "Plancha lateral"], pelotas: ["Ejercicios de corrección sobre pelota"] } },
+  fractura_vertebral: { nombre: "Fractura vertebral (osteoporótica)", test: "Percusión apófisis espinosa", agentes: ["tens", "frio"], ejercicios: { consultorio: ["Respiración diafragmática", "Extensores en prono", "Postura erguida"], casa: ["Sit-to-stand", "Log roll (girar en bloque)"], gimnasio: ["Remo liviano", "Prensa de piernas"], bandas: ["Extensión dorsal", "Remo"], pelotas: ["Equilibrio"] } },
+
+  // --- MIEMBRO SUPERIOR ---
+  hombro: { nombre: "Dolor de hombro / Manguito rotador", test: "Test de Jobe", agentes: ["frio", "us", "tens"], ejercicios: { consultorio: ["Péndulos de Codman", "Movilidad con bastón", "Manguito en pared", "Rotación excéntrica"], casa: ["Alcance a estantes", "AVD (vestido)"], gimnasio: ["Press de hombro", "Remo en polea", "Elevaciones laterales"], bandas: ["Rotación externa", "Rotación interna", "Face pull"], pelotas: ["Estabilización sobre pelota"] } },
+  capsulitis: { nombre: "Capsulitis adhesiva (Hombro congelado)", test: "Rango pasivo de rotación externa", agentes: ["calor", "us", "manual"], ejercicios: { consultorio: ["Elevación asistida con bastón", "Movilización pasiva", "Deslizamiento en pared"], casa: ["Alcance en higiene", "Tareas diarias"], gimnasio: ["Remo en polea baja", "Press en plano escapular"], bandas: ["Rotación externa", "Rotación interna"], pelotas: ["Deslizamiento en pared"] } },
+  epicondilitis: { nombre: "Epicondilitis lateral (Codo de tenista)", test: "Test de Cozen", agentes: ["frio", "us", "manual"], ejercicios: { consultorio: ["Movilidad de muñeca", "Deslizamiento radial", "Isométricos de extensores", "Excéntricos"], casa: ["Tareas livianas", "Agarre funcional"], gimnasio: ["Fortalecimiento de muñeca con mancuernas", "Remo"], bandas: ["Extensión de muñeca", "Supinación"], pelotas: ["Agarre con pelota"] } },
+  tunel: { nombre: "Síndrome del túnel carpiano", test: "Test de Phalen", agentes: ["frio", "tens"], ejercicios: { consultorio: ["Deslizamiento del mediano", "Reeducación postural", "Fortalecimiento de pinza"], casa: ["Adaptación ergonómica", "Prensión con pausas"], gimnasio: ["Fortalecimiento de antebrazo", "Remo"], bandas: ["Flexión de muñeca", "Extensión de muñeca"], pelotas: ["Pinza con pelota"] } },
+  dupuytren: { nombre: "Enfermedad de Dupuytren", test: "Test de la mesa (Hueston)", agentes: ["frio", "tens"], ejercicios: { consultorio: ["Extensión activa de dedos", "Deslizamiento tendinoso", "Control de cicatriz"], casa: ["Férula nocturna", "Masaje suave"], gimnasio: ["Agarre con mancuernas"], bandas: ["Extensión de dedos con banda"], pelotas: ["Agarre con masilla blanda"] } },
+
+  // --- MIEMBRO INFERIOR ---
+  rodilla: { nombre: "Gonartrosis / Dolor de rodilla", test: "Test de McMurray", agentes: ["calor", "frio", "tens", "magneto"], ejercicios: { consultorio: ["Movilidad activa", "Bicicleta", "Cuádriceps isométrico", "Sentadilla parcial"], casa: ["Sit-to-stand", "Escalón bajo"], gimnasio: ["Prensa", "Extensión en máquina", "Sentadilla con barra"], bandas: ["Sentadilla con banda", "Monster walk"], pelotas: ["Sentadilla en pared con pelota", "Puente sobre pelota"] } },
+  lca: { nombre: "Rehabilitación post LCA", test: "Test de Lachman", agentes: ["frio", "tens", "magneto"], ejercicios: { consultorio: ["Extensión completa", "Flexión progresiva", "Equilibrio unipodal", "Control neuromuscular"], casa: ["Marcha simétrica", "Subida de escalones"], gimnasio: ["Prensa", "Curl femoral", "Sentadilla búlgara"], bandas: ["Sentadilla con banda", "Abducción"], pelotas: ["Estabilización de rodilla"] } },
+  patelofemoral: { nombre: "Síndrome patelofemoral", test: "Test de aprensión rotuliana", agentes: ["frio", "tens"], ejercicios: { consultorio: ["Movilidad de rodilla", "Vasto medial", "Control del valgo"], casa: ["Escalón controlado", "Sentadilla parcial"], gimnasio: ["Prensa", "Extensión de rodilla"], bandas: ["Sentadilla con banda", "Abducción de cadera"], pelotas: ["Sentadilla con pelota en pared"] } },
+  menisco: { nombre: "Lesión meniscal", test: "Test de Thessaly", agentes: ["frio", "tens"], ejercicios: { consultorio: ["Movilidad en rango indoloro", "Cuádriceps isométrico", "Sentadilla parcial 0-45°"], casa: ["Sit-to-stand", "Escalón bajo"], gimnasio: ["Prensa en rango protegido"], bandas: ["Sentadilla con banda"], pelotas: ["Puente sobre pelota"] } },
+  itb: { nombre: "Síndrome de la cintilla iliotibial", test: "Test de Noble", agentes: ["frio", "tens"], ejercicios: { consultorio: ["Estiramiento de ITB", "Glúteo medio", "Abducción"], casa: ["Escalones laterales", "Corrección de técnica"], gimnasio: ["Abducción en máquina", "Prensa"], bandas: ["Abducción con banda", "Monster walk"], pelotas: ["Estabilización de cadera"] } },
+  tobillo: { nombre: "Esguince de tobillo", test: "Test del cajón anterior", agentes: ["frio", "tens", "us"], ejercicios: { consultorio: ["Bombeos", "Propiocepción bipodal", "Peroneos con banda"], casa: ["Equilibrio estático", "Marcha funcional"], gimnasio: ["Elevación de talones en máquina", "Prensa"], bandas: ["Eversión", "Inversión"], pelotas: ["Equilibrio sobre pelota"] } },
+  fascitis: { nombre: "Fascitis plantar", test: "Windlass Test", agentes: ["frio", "us", "tens"], ejercicios: { consultorio: ["Estiramiento de fascia", "Automasaje", "Short foot", "Elevación de talones"], casa: ["Marcha con calzado adecuado", "Pie sentado"], gimnasio: ["Elevación de talones en prensa"], bandas: ["Tibial posterior", "Eversión"], pelotas: ["Rodamiento con pelota de tenis"] } },
+  aquiles: { nombre: "Tendinopatía de Aquiles", test: "Test de Thompson", agentes: ["frio", "us"], ejercicios: { consultorio: ["Movilidad de tobillo", "Isométricos de tríceps sural", "Excéntricos"], casa: ["Marcha con progresión de carga", "Saltos suaves"], gimnasio: ["Elevación de talones en máquina"], bandas: ["Fortalecimiento de pantorrilla"], pelotas: ["Equilibrio"] } },
+  hallux_valgus: { nombre: "Hallux valgus (Juanete)", test: "Medición del ángulo", agentes: ["calor", "tens"], ejercicios: { consultorio: ["Movilización de 1er dedo", "Abductor del hallux", "Short foot"], casa: ["Calzado amplio", "Separador de dedos"], gimnasio: ["Elevación de talones"], bandas: ["Abducción de hallux"], pelotas: ["Rodamiento"] } },
+
+  // --- NEUROLOGÍA Y RARAS ---
+  acv: { nombre: "ACV / Hemiparesia", test: "Escala de Ashworth", agentes: ["tens", "magneto"], ejercicios: { consultorio: ["Movilización pasiva/asistida", "Control de tronco", "Entrenamiento orientado a la tarea"], casa: ["Transferencias", "AVD"], gimnasio: ["Máquinas de musculación", "Bicicleta estática"], bandas: ["Miembro superior con banda"], pelotas: ["Tronco sobre pelota"] } },
+  parkinson: { nombre: "Enfermedad de Parkinson", test: "Escala de Hoehn y Yahr", agentes: [], ejercicios: { consultorio: ["Movilidad axial", "Equilibrio con perturbaciones", "Sit-to-stand"], casa: ["Marcha con pistas", "Giros"], gimnasio: ["Bicicleta", "Prensa"], bandas: ["Fortalecimiento global"], pelotas: ["Equilibrio sobre pelota"] } },
+  esclerosis_multiple: { nombre: "Esclerosis Múltiple", test: "Timed 25-Foot Walk", agentes: ["tens"], ejercicios: { consultorio: ["Movilidad global", "Equilibrio", "Fortalecimiento submáximo"], casa: ["Marcha", "Manejo de energía"], gimnasio: ["Bicicleta", "Máquinas"], bandas: ["Fortalecimiento"], pelotas: ["Equilibrio"] } },
+  guillain_barre: { nombre: "Síndrome de Guillain-Barré", test: "Escala MRC", agentes: [], ejercicios: { consultorio: ["Movilización pasiva", "Control de tronco", "Activos submáximos"], casa: ["Marcha asistida", "AVD"], gimnasio: ["Bicicleta", "Poleas"], bandas: ["Fortalecimiento suave"], pelotas: ["Equilibrio"] } },
+  ela: { nombre: "Esclerosis Lateral Amiotrófica (ELA)", test: "ALSFRS-R", agentes: ["tens"], ejercicios: { consultorio: ["Movilidad pasiva", "Estiramientos suaves", "Submáximo sin fatiga"], casa: ["Adaptaciones", "Manejo respiratorio"], gimnasio: ["Bicicleta asistida"], bandas: ["Fortalecimiento ligero"], pelotas: ["Movilidad"] } },
+  parsonage: { nombre: "Síndrome de Parsonage-Turner", test: "Evaluación de fuerza (Daniels)", agentes: ["tens"], ejercicios: { consultorio: ["Movilidad pasiva", "Reeducación de manguito", "Control escapular"], casa: ["Tareas asistidas"], gimnasio: ["Poleas ligeras"], bandas: ["Rotación externa/interna"], pelotas: ["Estabilización"] } },
+  crps: { nombre: "Síndrome de Dolor Regional Complejo (CRPS)", test: "Criterios de Budapest", agentes: ["tens"], ejercicios: { consultorio: ["Desensibilización", "Terapia en espejo", "Movilidad activa suave"], casa: ["Uso funcional", "Exposición gradual"], gimnasio: ["Ejercicio aeróbico suave"], bandas: ["Movilización suave"], pelotas: ["Texturas"] } },
+  polineuropatia: { nombre: "Polineuropatía periférica", test: "Monofilamento", agentes: ["tens"], ejercicios: { consultorio: ["Movilidad distal", "Propiocepción", "Fortalecimiento de piernas"], casa: ["Cuidado del pie", "Equilibrio"], gimnasio: ["Bicicleta"], bandas: ["Fortalecimiento"], pelotas: ["Equilibrio"] } },
+
+  // --- REUMATOLOGÍA Y SISTÉMICAS ---
+  artritis_reumatoide: { nombre: "Artritis Reumatoide", test: "Dinamometría de agarre", agentes: ["tens", "frio"], ejercicios: { consultorio: ["Movilidad suave", "Protección articular", "Isométricos"], casa: ["Ahorro articular", "AVD"], gimnasio: ["Bicicleta", "Poleas"], bandas: ["Fortalecimiento suave"], pelotas: ["Agarre"] } },
+  fibromialgia: { nombre: "Fibromialgia", test: "Criterios ACR", agentes: ["calor", "tens"], ejercicios: { consultorio: ["Movilidad suave", "Respiración", "Baja carga"], casa: ["Marcha", "Pacing"], gimnasio: ["Bicicleta", "Pileta"], bandas: ["Fortalecimiento suave"], pelotas: ["Estiramientos"] } },
+  osteoporosis: { nombre: "Osteoporosis", test: "Sit-to-stand 30s", agentes: [], ejercicios: { consultorio: ["Extensión de columna", "Equilibrio", "Fortalecimiento de extensores"], casa: ["Caminata", "Prevención de caídas"], gimnasio: ["Prensa", "Remo"], bandas: ["Fortalecimiento"], pelotas: ["Equilibrio"] } },
+  gota: { nombre: "Gota", test: "Palpación articular", agentes: ["frio"], ejercicios: { consultorio: ["Movilidad suave", "Equilibrio"], casa: ["Caminata bajo impacto", "Hidratación"], gimnasio: ["Bicicleta"], bandas: ["Movilidad"], pelotas: ["Estiramiento"] } },
+  lupus: { nombre: "Lupus (LES)", test: "Sit-to-stand", agentes: [], ejercicios: { consultorio: ["Movilidad", "Respiración", "Baja carga"], casa: ["Caminata", "Manejo de fatiga"], gimnasio: ["Bicicleta"], bandas: ["Fortalecimiento"], pelotas: ["Equilibrio"] } },
+  ehler_danlos: { nombre: "Síndrome de Ehlers-Danlos", test: "Escala de Beighton", agentes: ["tens"], ejercicios: { consultorio: ["Estabilidad articular", "Propiocepción", "Isométricos"], casa: ["Protección articular", "Evitar estiramientos pasivos"], gimnasio: ["Máquinas (evitar peso libre)"], bandas: ["Fortalecimiento en rango corto"], pelotas: ["Estabilidad"] } },
+
+  // --- PEDIATRÍA Y RARAS ---
+  pci: { nombre: "Parálisis Cerebral Infantil", test: "GMFCS", agentes: [], ejercicios: { consultorio: ["Estiramientos", "Control de tronco", "Juego terapéutico"], casa: ["Participación", "Orientación familiar"], gimnasio: ["Bicicleta adaptada"], bandas: ["Fortalecimiento"], pelotas: ["Equilibrio"] } },
+  osgood: { nombre: "Enfermedad de Osgood-Schlatter", test: "Palpación de tuberosidad tibial", agentes: ["frio"], ejercicios: { consultorio: ["Estiramiento de cuádriceps", "Isométricos"], casa: ["Modulación de carga", "Hielo post-deporte"], gimnasio: ["Evitar impacto"], bandas: ["Fortalecimiento suave"], pelotas: ["Estiramiento"] } },
+  sever: { nombre: "Enfermedad de Sever (Apofisitis calcánea)", test: "Squeeze test del talón", agentes: ["frio"], ejercicios: { consultorio: ["Estiramiento de gemelos", "Control de apoyo"], casa: ["Calzado amortiguado", "Taloneras"], gimnasio: ["Bicicleta"], bandas: ["Fortalecimiento de tobillo"], pelotas: ["Rodamiento"] } },
+  perthes: { nombre: "Enfermedad de Legg-Calvé-Perthes", test: "Rotación interna de cadera", agentes: [], ejercicios: { consultorio: ["Movilidad de cadera", "Abducción en decúbito"], casa: ["Marcha según ortopedia", "Natación"], gimnasio: ["Pileta"], bandas: ["Fortalecimiento de glúteo"], pelotas: ["Movilidad"] } },
+  displasia_cadera: { nombre: "Displasia del Desarrollo de Cadera", test: "Ortolani/Barlow", agentes: [], ejercicios: { consultorio: ["Posicionamiento en M", "Estimulación motora"], casa: ["Arnés de Pavlik", "Juego"], gimnasio: [], bandas: [], pelotas: [] } },
+
+  // --- OTROS ---
+  epoc: { nombre: "EPOC / Rehabilitación Respiratoria", test: "Marcha de 6 minutos", agentes: [], ejercicios: { consultorio: ["Respiración con labios fruncidos", "Ahorro de energía", "Fortalecimiento"], casa: ["Caminata", "Sit-to-stand"], gimnasio: ["Bicicleta", "Prensa"], bandas: ["Miembros superiores"], pelotas: ["Movilidad torácica"] } },
+  riesgo_caidas: { nombre: "Riesgo de Caídas (Adulto Mayor)", test: "Timed Up and Go (TUG)", agentes: [], ejercicios: { consultorio: ["Equilibrio bipodal", "Transferencia de peso", "Sit-to-stand"], casa: ["Tándem", "Tareas duales"], gimnasio: ["Bicicleta"], bandas: ["Fortalecimiento"], pelotas: ["Equilibrio sobre superficie inestable"] } },
+  amputado: { nombre: "Amputación de Miembro Inferior", test: "L-Test", agentes: ["frio"], ejercicios: { consultorio: ["Movilidad de cadera", "Vendaje del muñón", "Equilibrio"], casa: ["Transferencias", "Marcha con prótesis"], gimnasio: ["Fortalecimiento de miembro sano"], bandas: ["Fortalecimiento"], pelotas: ["Equilibrio"] } }
 };

@@ -1,22 +1,18 @@
-// ============================================================
-// KINEFLOW CLINICAL - Lógica Principal
-// ============================================================
-
-// ⚠️ PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ (termina en /exec)
 const API_URL = "https://script.google.com/macros/s/AKfycbyZFQba2Lw4-R1dL_cGLLr-VZbNTsF5GFyz-BWPl3Pze42uH5V79Jov01KmQgILXtIW/exec"; 
-
 let chartInstance = null;
 let calendar = null;
 
 let state = {
-  user: null, 
-  patients: [], 
-  currentPatient: null, 
-  turnos: [],
+  user: null, patients: [], currentPatient: null, turnos: [],
   currentSession: { n: 1, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "" }
 };
 
-// Mapeo de patologías a zonas del cuerpo (SVG)
+// Configuración de tiempos (minutos) por defecto para cada agente
+const TIEMPOS_AGENTES = {
+  calor: 15, frio: 10, tens: 20, magneto: 20, us: 8, manual: 15
+};
+
+// Mapeo de patologías a zonas del cuerpo
 const ZONAS_DOLOR = {
   lumbalgia: ["zone-lumbar"], ciatica: ["zone-lumbar"], hernia_dorsal: ["zone-lumbar"], 
   cervicalgia: ["zone-cuello"], hernia_cervical: ["zone-cuello"],
@@ -26,26 +22,21 @@ const ZONAS_DOLOR = {
   esguince_tobillo: ["zone-tobillo", "zone-tobillo-der"], fascitis: ["zone-tobillo"]
 };
 
-// Dosificación según nivel de actividad
 const DOSIFICACION = {
-  sedentario: { series: 2, reps: "10-12", descanso: "60s", tiempoTotal: "40 min" },
-  activo: { series: 3, reps: "10-12", descanso: "45s", tiempoTotal: "45 min" },
-  deportista: { series: 4, reps: "8-10", descanso: "90s", tiempoTotal: "60 min" },
-  laboral_pesado: { series: 3, reps: "12-15", descanso: "60s", tiempoTotal: "50 min" }
+  sedentario: { series: 2, reps: 10, descanso: 60, tiempoTotal: 40 },
+  activo: { series: 3, reps: 10, descanso: 45, tiempoTotal: 45 },
+  deportista: { series: 4, reps: 8, descanso: 90, tiempoTotal: 60 },
+  laboral_pesado: { series: 3, reps: 12, descanso: 60, tiempoTotal: 50 }
 };
 
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
   showView('login-view');
-  
-  // Llenar el select de patologías
   const select = document.getElementById('new-patient-pathology');
   if (select) {
     for (const key in DB) {
       const option = document.createElement('option');
-      option.value = key; 
-      option.textContent = DB[key].nombre; 
-      select.appendChild(option);
+      option.value = key; option.textContent = DB[key].nombre; select.appendChild(option);
     }
   }
   checkPendingSync();
@@ -74,13 +65,10 @@ async function login() {
   
   const hash = await hashPassword(password);
   const storedHash = localStorage.getItem('kf_auth_' + email);
-  
   if (storedHash && storedHash !== hash) return showToast('Contraseña incorrecta', true);
   if (!storedHash) localStorage.setItem('kf_auth_' + email, hash);
 
   state.user = { email };
-  
-  // Cargar datos locales (Offline First)
   const localP = localStorage.getItem('kf_patients_' + email);
   if (localP) state.patients = JSON.parse(localP);
   const localT = localStorage.getItem('kf_turnos_' + email);
@@ -119,23 +107,15 @@ function createPatient() {
   if (!name || !phone) return showToast('Completa nombre y teléfono', true);
 
   const newPatient = { 
-    id: Date.now().toString(), 
-    nombre: name, 
-    telefono: phone, 
-    patologia: pathology, 
-    nivelActividad: activity, 
-    banderasRojas: redFlags, 
-    banderasAmarillas: yellowFlags,
-    anamnesis: anamnesis, 
-    medicacionTexto: meds,
-    sesionesCompletadas: 0, 
-    historial: [] 
+    id: Date.now().toString(), nombre: name, telefono: phone, patologia: pathology, 
+    nivelActividad: activity, banderasRojas: redFlags, banderasAmarillas: yellowFlags,
+    anamnesis: anamnesis, medicacionTexto: meds,
+    sesionesCompletadas: 0, historial: [] 
   };
   
   state.patients.push(newPatient);
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
 
-  // Si se agendó un turno, guardarlo
   if (turnoDateTime) {
     const turno = {
       id: 't_' + Date.now().toString(),
@@ -147,7 +127,6 @@ function createPatient() {
     localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
   }
 
-  // Limpiar formulario
   document.getElementById('new-patient-name').value = '';
   document.getElementById('new-patient-phone').value = '';
   document.getElementById('new-patient-anamnesis').value = '';
@@ -169,12 +148,12 @@ function renderPatientList() {
   }
   list.innerHTML = state.patients.map((p, index) => {
     const patName = DB[p.patologia] ? DB[p.patologia].nombre : p.patologia;
-    return `<div class="patient-card" onclick="openSession(${index})">
-      <div class="patient-avatar">${p.nombre.charAt(0).toUpperCase()}</div>
-      <div class="patient-info">
-        <h3>${p.nombre}</h3>
-        <p>${patName} · Sesión ${p.sesionesCompletadas || 0}/10</p>
+    return `<div class="patient-card" style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:15px; cursor:pointer;" onclick="openSession(${index})">
+        <div class="patient-avatar">${p.nombre.charAt(0).toUpperCase()}</div>
+        <div class="patient-info"><h3>${p.nombre}</h3><p>${patName} · Sesión ${p.sesionesCompletadas || 0}/10</p></div>
       </div>
+      <button onclick="event.stopPropagation(); eliminarPaciente(${index})" class="btn-delete" title="Eliminar Paciente">🗑️</button>
     </div>`;
   }).join('');
 }
@@ -186,8 +165,7 @@ function initCalendar() {
   if (calendar) calendar.destroy();
 
   calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth', 
-    locale: 'es',
+    initialView: 'dayGridMonth', locale: 'es',
     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
     events: state.turnos,
     dateClick: function(info) {
@@ -198,13 +176,6 @@ function initCalendar() {
         localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
         calendar.addEvent(turno);
         queueForSync('saveTurno', turno);
-      }
-    },
-    eventClick: function(info) {
-      if (confirm("¿Eliminar este turno?")) {
-        info.event.remove();
-        state.turnos = state.turnos.filter(t => t.id !== info.event.id);
-        localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
       }
     }
   });
@@ -218,6 +189,7 @@ window.switchTab = function(tabId, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (tabId === 'evolucion') renderGrafico();
+  if (tabId === 'ejercicios') calcularTiempoTotal(); // Calcular tiempo al entrar a la pestaña
 };
 
 function openSession(patientIndex) {
@@ -225,35 +197,28 @@ function openSession(patientIndex) {
   const patData = DB[state.currentPatient.patologia];
   const sesionesCompletadas = state.currentPatient.sesionesCompletadas || 0;
   
-  // Reiniciar sesión
   state.currentSession = { n: sesionesCompletadas + 1, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "" };
   
-  // Cabecera
   document.getElementById('session-patient-name').textContent = state.currentPatient.nombre;
   document.getElementById('patologia-nombre').textContent = patData.nombre;
   
   // Anamnesis y Medicación
   let anamnesisText = state.currentPatient.anamnesis || "Sin anamnesis registrada.";
   document.getElementById('anamnesis-resumen').textContent = `"${anamnesisText}"`;
-  
   let medsText = state.currentPatient.medicacionTexto;
-  if (medsText) {
-    document.getElementById('meds-resumen').innerHTML = `💊 <b>Medicación:</b> ${medsText}`;
-  } else {
-    document.getElementById('meds-resumen').innerHTML = '';
-  }
+  document.getElementById('meds-resumen').innerHTML = medsText ? `💊 <b>Medicación:</b> ${medsText}` : '';
 
-  // Lógica de Dosificación y Kinesiofobia
+  // Dosificación y Kinesiofobia
   let dos = DOSIFICACION[state.currentPatient.nivelActividad] || DOSIFICACION.sedentario;
   let isKinesiofobo = state.currentPatient.banderasAmarillas && state.currentPatient.banderasAmarillas.includes('yellow_kinesiofobia');
   
-  let dosText = `Test: ${patData.test}<br><small>Dosificación: ${dos.series} series x ${dos.reps} reps (${dos.tiempoTotal})</small>`;
+  let dosText = `Test: ${patData.test}<br><small>Dosificación: ${dos.series} series x ${dos.reps} reps (${dos.tiempoTotal} min)</small>`;
   if (isKinesiofobo) {
-      dosText += `<br><span style="color:var(--warning); font-weight:bold; display:block; margin-top:5px; font-size:0.8rem;">⚠️ Kinesiofobia: Priorizar educación y exposición gradual. Reducir series.</span>`;
+      dosText += `<br><span style="color:var(--warning); font-weight:bold; display:block; margin-top:5px; font-size:0.8rem;">⚠️ Kinesiofobia: Priorizar educación y exposición gradual.</span>`;
   }
   document.getElementById('patologia-test').innerHTML = dosText;
 
-  // Alertas de Banderas
+  // Banderas
   let flagsDiv = document.getElementById('flags-alert');
   let flagsHTML = '';
   if (state.currentPatient.banderasRojas && state.currentPatient.banderasRojas.length > 0) {
@@ -295,7 +260,7 @@ function openSession(patientIndex) {
     });
   }
 
-  // Agentes Físicos
+  // Agentes
   const agentContainer = document.getElementById('agents-list');
   agentContainer.innerHTML = '';
   if (patData && patData.agentes) {
@@ -307,12 +272,11 @@ function openSession(patientIndex) {
       }
       const div = document.createElement('div');
       div.className = `agent-item ${isContra ? 'contra' : ''}`;
-      div.innerHTML = `<div><h4>${agent.nombre}</h4><small>${agent.dosis}</small>${isContra ? `<span class="agent-alert">⚠️ Contraindicado</span>` : ''}</div><input type="checkbox" ${isContra ? 'disabled' : ''} onchange="toggleAgent('${agent.nombre}', this.checked)">`;
+      div.innerHTML = `<div><h4>${agent.nombre}</h4><small>${agent.dosis}</small>${isContra ? `<span class="agent-alert">⚠️ Contraindicado</span>` : ''}</div><input type="checkbox" ${isContra ? 'disabled' : ''} onchange="toggleAgent('${agent.nombre}', this.checked, '${agentKey}')">`;
       agentContainer.appendChild(div);
     });
   }
 
-  // Resetear EVA y notas
   document.getElementById('eva-reposo').value = 0; document.getElementById('eva-reposo-val').textContent = "0";
   document.getElementById('eva-movimiento').value = 0; document.getElementById('eva-movimiento-val').textContent = "0";
   document.getElementById('session-notes').value = "";
@@ -331,13 +295,38 @@ function renderLists() {
         <button class="btn-remove" onclick="removeItem('consultorio', ${i})">×</button>
       </div></li>
   `).join('');
-  
   document.getElementById('selected-casa').innerHTML = state.currentSession.casa.map((ej, i) => `
       <li style="border-left-color:var(--whatsapp);"><span>${ej}</span><div class="action-buttons">
         <button class="btn-play" onclick="verMedia('${ej}')">▶</button>
         <button class="btn-remove" onclick="removeItem('casa', ${i})">×</button>
       </div></li>
   `).join('');
+  calcularTiempoTotal(); // Recalcular tiempo al modificar listas
+}
+
+// --- CÁLCULO DE TIEMPO TOTAL ---
+function calcularTiempoTotal() {
+  const dos = DOSIFICACION[state.currentPatient.nivelActividad] || DOSIFICACION.sedentario;
+  const numEjercicios = state.currentSession.consultorio.length;
+  
+  // Tiempo por ejercicio (aprox: series * (reps * 3s + descanso))
+  const tiempoPorEjercicio = dos.series * (dos.reps * 3 + dos.descanso) / 60; // en minutos
+  const tiempoEjercicios = numEjercicios * tiempoPorEjercicio;
+
+  // Tiempo de agentes
+  let tiempoAgentes = 0;
+  state.currentSession.agentes.forEach(ag => { tiempoAgentes += TIEMPOS_AGENTES[ag] || 15; });
+
+  const total = Math.round(tiempoEjercicios + tiempoAgentes);
+
+  document.getElementById('time-ejercicios').textContent = Math.round(tiempoEjercicios) + ' min';
+  document.getElementById('time-agentes').textContent = tiempoAgentes + ' min';
+  document.getElementById('time-total').textContent = total + ' min';
+
+  const alertEl = document.getElementById('time-alert');
+  if (total < 40) alertEl.textContent = '⚠️ Menos de 40 min. Agregar más ejercicios.';
+  else if (total > 60) alertEl.textContent = '⚠️ Más de 60 min. Reducir ejercicios o descansos.';
+  else alertEl.textContent = '✅ Tiempo dentro del rango recomendado (40-60 min).';
 }
 
 // --- UTILIDADES DE TERAPIA ---
@@ -363,9 +352,10 @@ function removeItem(l, i) {
   renderLists(); 
 }
 
-function toggleAgent(n, c) { 
-  if(c) state.currentSession.agentes.push(n); 
-  else state.currentSession.agentes = state.currentSession.agentes.filter(a => a !== n); 
+function toggleAgent(n, c, key) { 
+  if(c) state.currentSession.agentes.push(key); 
+  else state.currentSession.agentes = state.currentSession.agentes.filter(a => a !== key); 
+  calcularTiempoTotal(); // Recalcular al cambiar agentes
 }
 
 function updateEva(type, val) { 
@@ -380,9 +370,29 @@ function verMedia(nombre) {
   document.getElementById('modal-img-link').href = `https://www.google.com/search?q=${encodeURIComponent('ejercicio kinesiologia ' + nombre + ' posicion inicial y final')}&tbm=isch`;
   modal.classList.remove('hidden');
 }
-
 function verTest() { verMedia(DB[state.currentPatient.patologia].test); }
 function closeModal() { document.getElementById('media-modal').classList.add('hidden'); }
+
+// --- EDITAR Y ELIMINAR PACIENTE ---
+function editarAnamnesis() {
+  const p = state.currentPatient;
+  const nuevaAnamnesis = prompt("Editar Anamnesis:", p.anamnesis);
+  if (nuevaAnamnesis !== null && nuevaAnamnesis.trim() !== "") {
+    p.anamnesis = nuevaAnamnesis.trim();
+    document.getElementById('anamnesis-resumen').textContent = `"${p.anamnesis}"`;
+    localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
+    showToast('Anamnesis actualizada');
+  }
+}
+
+function eliminarPaciente(index) {
+  if (confirm(`¿Eliminar a ${state.patients[index].nombre}?`)) {
+    state.patients.splice(index, 1);
+    localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
+    renderPatientList();
+    showToast('Paciente eliminado');
+  }
+}
 
 // --- GRÁFICO Y GUARDADO ---
 function renderGrafico() {
@@ -414,14 +424,10 @@ function saveSession() {
   if (!state.currentPatient.historial) state.currentPatient.historial = [];
   
   state.currentPatient.historial.push({
-    sesion: state.currentSession.n, 
-    fecha: new Date().toISOString(),
-    eva_reposo: state.currentSession.eva_reposo, 
-    eva_movimiento: state.currentSession.eva_movimiento, 
-    notas: state.currentSession.notas
+    sesion: state.currentSession.n, fecha: new Date().toISOString(),
+    eva_reposo: state.currentSession.eva_reposo, eva_movimiento: state.currentSession.eva_movimiento, notas: state.currentSession.notas
   });
 
-  // Criterio de avance: Dolor <= 3
   if (state.currentSession.eva_reposo <= 3 && state.currentSession.eva_movimiento <= 3) {
     if (state.currentPatient.sesionesCompletadas < state.currentSession.n) state.currentPatient.sesionesCompletadas = state.currentSession.n;
     showToast('✅ Sesión guardada. Siguiente desbloqueada.');
@@ -471,7 +477,6 @@ function exportarHistoria() {
     <p><b>Diagnóstico:</b> ${DB[p.patologia].nombre}</p>
     <p><b>Anamnesis:</b> ${p.anamnesis || '-'}</p>
     <p><b>Medicación:</b> ${p.medicacionTexto || '-'}</p>`;
-    
   if (p.banderasRojas && p.banderasRojas.length > 0) html += `<p style="color:red;"><b>Banderas Rojas:</b> ${p.banderasRojas.join(', ')}</p>`;
   html += `</div>`;
   
@@ -484,23 +489,19 @@ function exportarHistoria() {
   } else { 
     html += `<p>No hay sesiones registradas aún.</p>`; 
   }
-  
   document.getElementById('print-area').innerHTML = html;
   window.print();
 }
 
 function sendWhatsApp() {
   if (state.currentSession.casa.length === 0) return showToast('No hay ejercicios en casa.', true);
-  
   let msg = `*Plan de Ejercicios para Casa* 🏠\nHola ${state.currentPatient.nombre}, acá tenés tu tarea:\n\n`;
   state.currentSession.casa.forEach((ej, i) => { 
     msg += `${i+1}. ${ej}\nVideo: https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + ej)}\n\n`; 
   });
-  
   if (state.currentPatient.banderasAmarillas && state.currentPatient.banderasAmarillas.includes('yellow_kinesiofobia')) {
       msg += `_Recordá: el movimiento es seguro y necesario para tu recuperación. Hacelo de a poco y sin miedo._`;
   }
-  
   window.open(`https://wa.me/${state.currentPatient.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
@@ -535,7 +536,6 @@ async function syncPendingData() {
   if (remaining.length === 0) showToast('✅ Datos sincronizados');
 }
 
-// --- TOAST ---
 function showToast(m, e=false) { 
   const t = document.getElementById('toast'); 
   t.textContent = m; 

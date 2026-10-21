@@ -39,27 +39,51 @@
 
     <!-- DASHBOARD -->
     <div id="dashboard-view" class="view hidden">
+      <!-- Perfil Profesional (Nuevo) -->
+      <div class="card glass" style="margin-bottom: 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+          <h3 style="margin:0;">👤 Perfil Profesional</h3>
+          <button onclick="saveProfile()" class="btn-secondary" style="width:auto; padding:6px 12px; font-size:0.8rem;">Guardar</button>
+        </div>
+        <div class="grid-2">
+          <div><label>Nombre y Apellido</label><input type="text" id="prof-name" placeholder="Ej: Adrián Lazarte"></div>
+          <div><label>Matrícula Profesional</label><input type="text" id="prof-matricula" placeholder="Ej: MP 12345"></div>
+        </div>
+      </div>
+
+      <!-- Agenda de Hoy -->
+      <div class="card glass agenda-hoy" style="margin-bottom: 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+          <h3 style="margin:0;">📅 Agenda de Hoy</h3>
+          <button onclick="showView('calendar-view'); initCalendar();" class="btn-text" style="font-weight:700;">Ver Calendario Completo →</button>
+        </div>
+        <div id="agenda-hoy-list"></div>
+      </div>
+
       <div class="header-actions">
-        <h2>Mis Pacientes</h2>
-        <button onclick="showView('calendar-view'); initCalendar();" class="btn-icon" title="Ver Calendario">📅</button>
+        <h2>Directorio de Pacientes</h2>
+        <div style="display:flex; gap:8px;">
+          <button onclick="exportarTodoCSV()" class="btn-secondary" style="padding:10px 20px;">📥 Exportar CSV</button>
+          <button onclick="showView('new-patient-view')" class="btn-primary" style="width:auto; padding:10px 20px;">+ Nuevo Paciente</button>
+        </div>
       </div>
       <div id="patient-list" class="patient-grid"></div>
-      <button onclick="showView('new-patient-view')" class="btn-fab">+</button>
     </div>
 
     <!-- CALENDARIO -->
     <div id="calendar-view" class="view hidden">
       <div class="header-actions">
         <h2>Agenda de Turnos</h2>
-        <button onclick="showView('dashboard-view')" class="btn-icon" title="Volver">👥</button>
+        <button onclick="showView('dashboard-view')" class="btn-text">← Volver al Inicio</button>
       </div>
       <div class="card glass" id="calendar-container"></div>
     </div>
 
     <!-- NUEVO PACIENTE -->
     <div id="new-patient-view" class="view hidden">
-      <div class="header-actions"><h2>Nuevo Paciente</h2><button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button></div>
+      <div class="header-actions"><h2>Alta de Paciente y Turno</h2><button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button></div>
       <div class="card glass">
+        <h3>Datos Personales</h3>
         <label>Nombre completo</label><input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
         <label>WhatsApp (código país, sin +)</label><input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
         <div class="grid-2">
@@ -73,32 +97,65 @@
           <option value="deportista">Deportista</option>
           <option value="laboral_pesado">Trabajo físico exigente</option>
         </select>
+        
+        <h3 style="margin-top:24px;">Historia Clínica</h3>
         <label>Anamnesis</label><textarea id="new-patient-anamnesis" placeholder="Motivo de consulta..."></textarea>
         <label>Fármacos (Principio Activo)</label>
         <input type="text" id="new-patient-meds" placeholder="Ej: Ibuprofeno, Prednisona...">
-        <label>Fecha y Hora del Turno (opcional)</label><input type="datetime-local" id="new-patient-turno">
+        
+        <h3 style="margin-top:24px;">Zona Corporal (Sugerencia)</h3>
+        <label>Zona Dolorosa</label>
+        <select id="new-patient-zona" onchange="filtrarPatologiasPorZona()">
+          <option value="">— Elegir zona —</option>
+          <option value="lumbar">Lumbar</option>
+          <option value="cervical">Cervical</option>
+          <option value="hombro">Hombro</option>
+          <option value="codo">Codo</option>
+          <option value="muneca">Muñeca/Mano</option>
+          <option value="cadera">Cadera</option>
+          <option value="rodilla">Rodilla</option>
+          <option value="tobillo">Tobillo/Pie</option>
+        </select>
+        <label>Diagnóstico (Patología)</label>
+        <select id="new-patient-pathology"><option value="">— Elegir patología —</option></select>
+        
+        <h3 style="margin-top:24px;">Planificación</h3>
+        <label>Fecha y Hora del Primer Turno</label><input type="datetime-local" id="new-patient-turno">
+        
         <fieldset class="flags-fieldset red-border">
-          <legend>🚩 Banderas Rojas (Derivación)</legend>
+          <legend>🚩 Banderas Rojas</legend>
           <label class="check-item"><input type="checkbox" value="red_dolor_nocturno" class="red-flag"> Dolor nocturno no mecánico</label>
           <label class="check-item"><input type="checkbox" value="red_perdida_peso" class="red-flag"> Pérdida de peso inexplicada</label>
           <label class="check-item"><input type="checkbox" value="red_fiebre" class="red-flag"> Fiebre o malestar</label>
           <label class="check-item"><input type="checkbox" value="red_cancer" class="red-flag"> Antecedente de cáncer</label>
-          <label class="check-item"><input type="checkbox" value="red_neurologico" class="red-flag"> Déficit neurológico</label>
         </fieldset>
+        
         <fieldset class="flags-fieldset yellow-border">
-          <legend>🟡 Banderas Amarillas (Psicosociales)</legend>
+          <legend>🟡 Banderas Amarillas</legend>
           <label class="check-item"><input type="checkbox" value="yellow_kinesiofobia" class="yellow-flag"> <b>Kinesiofobia</b></label>
           <label class="check-item"><input type="checkbox" value="yellow_catastrofismo" class="yellow-flag"> Catastrofismo</label>
-          <label class="check-item"><input type="checkbox" value="yellow_animo" class="yellow-flag"> Bajo ánimo / ansiedad</label>
         </fieldset>
-        <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente</button>
+
+        <fieldset class="flags-fieldset blue-border" style="border-left: 4px solid #2a7ab0 !important;">
+          <legend>🔵 Banderas Azules (Percepción Laboral)</legend>
+          <label class="check-item"><input type="checkbox" value="blue_trabajo_empeora" class="blue-flag"> Percibe que el trabajo empeora su dolor</label>
+          <label class="check-item"><input type="checkbox" value="blue_soporte" class="blue-flag"> Baja percepción de apoyo laboral</label>
+        </fieldset>
+
+        <fieldset class="flags-fieldset black-border" style="border-left: 4px solid #1e293b !important;">
+          <legend>⚫ Banderas Negras (Contexto y Sistema)</legend>
+          <label class="check-item"><input type="checkbox" value="black_litigio" class="black-flag"> Litigio / compensación laboral</label>
+          <label class="check-item"><input type="checkbox" value="black_licencia" class="black-flag"> Licencia prolongada / beneficio ligado al reposo</label>
+        </fieldset>
+
+        <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente y Agendar</button>
       </div>
     </div>
 
     <!-- SESIÓN -->
     <div id="session-view" class="view hidden">
       <div class="session-topbar">
-        <button onclick="showView('dashboard-view'); renderPatientList();" class="btn-icon">←</button>
+        <button onclick="showView('dashboard-view'); renderPatientList(); renderAgendaHoy();" class="btn-icon">←</button>
         <h2 id="session-patient-name">Paciente</h2>
         <button onclick="exportarHistoria()" class="btn-icon">🖨️</button>
       </div>
@@ -137,22 +194,32 @@
 
         <!-- PESTAÑA TERAPIA -->
         <div id="tab-terapia" class="tab-pane hidden">
-          <div class="card glass">
+          <div class="card glass time-card">
             <h3>⏱️ Duración de la Sesión</h3>
             <div class="session-timer-selector">
               <div class="timer-chip" data-time="40" onclick="selectSessionTime(40, this)">40 min</div>
               <div class="timer-chip active" data-time="50" onclick="selectSessionTime(50, this)">50 min</div>
               <div class="timer-chip" data-time="60" onclick="selectSessionTime(60, this)">60 min</div>
             </div>
-            <p class="sub" id="time-summary">Tiempo planificado: 0 min / Objetivo: 50 min</p>
+            <p class="sub" id="time-summary" style="margin-top:12px; font-weight:700;">Tiempo planificado: 0 min / Objetivo: 50 min</p>
           </div>
-          <div class="card glass">
-            <h3>⚡ Agentes Físicos</h3>
-            <div id="agents-list" class="agent-selector"></div>
-          </div>
-          <div class="card glass">
-            <h3>🏋️ Ejercicios</h3>
-            <div id="suggested-exercises" class="exercise-list"></div>
+
+          <div class="therapy-grid">
+            <div class="card glass">
+              <h3>Catálogo de Ejercicios</h3>
+              <p class="sub">Hacé clic en el + para agregar a la sesión.</p>
+              <div id="catalogo-ejercicios" class="catalogo-list"></div>
+              <button onclick="agregarEjercicioPersonalizado()" class="btn-secondary mt-2" style="width:100%;">+ Agregar Ejercicio Personalizado</button>
+            </div>
+
+            <div class="card glass border-teal" style="background: rgba(15, 118, 110, 0.05);">
+              <h3>Plan de la Sesión</h3>
+              <p class="sub">Ejercicios seleccionados para hoy.</p>
+              <ul id="selected-exercises-list" class="selected-list"></ul>
+              
+              <h3 style="margin-top:24px;">Agentes Físicos</h3>
+              <div id="agents-list" class="agent-selector"></div>
+            </div>
           </div>
         </div>
 
@@ -170,25 +237,12 @@
 
         <!-- PESTAÑA CIERRE -->
         <div id="tab-cierre" class="tab-pane hidden">
-          <!-- Evaluación Tridimensional -->
           <div class="card glass">
             <h3>📊 Evaluación del Dolor (EVA 0-10)</h3>
             <div class="grid-3">
-              <div class="eva-box">
-                <label>Reposo</label>
-                <div class="eva-value" id="eva-reposo-val">0</div>
-                <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
-              </div>
-              <div class="eva-box">
-                <label>Movimiento Activo</label>
-                <div class="eva-value" id="eva-activo-val">0</div>
-                <input type="range" id="eva-activo" min="0" max="10" value="0" oninput="updateEva('activo', this.value)">
-              </div>
-              <div class="eva-box">
-                <label>Movimiento Pasivo</label>
-                <div class="eva-value" id="eva-pasivo-val">0</div>
-                <input type="range" id="eva-pasivo" min="0" max="10" value="0" oninput="updateEva('pasivo', this.value)">
-              </div>
+              <div class="eva-box"><label>Reposo</label><div class="eva-value" id="eva-reposo-val">0</div><input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)"></div>
+              <div class="eva-box"><label>Activo</label><div class="eva-value" id="eva-activo-val">0</div><input type="range" id="eva-activo" min="0" max="10" value="0" oninput="updateEva('activo', this.value)"></div>
+              <div class="eva-box"><label>Pasivo</label><div class="eva-value" id="eva-pasivo-val">0</div><input type="range" id="eva-pasivo" min="0" max="10" value="0" oninput="updateEva('pasivo', this.value)"></div>
             </div>
           </div>
 

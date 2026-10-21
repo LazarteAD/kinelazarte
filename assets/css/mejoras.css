@@ -6,7 +6,7 @@
 /* 1. Botones accesibles y con foco visible */
 button, .btn {
   min-height: 44px;
-  padding: .65rem 1.1rem;
+  padding: .65rem 1.1rem; 
   font-weight: 600;
   border-radius: 10px;
   transition: background .15s, transform .05s;

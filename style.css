@@ -421,4 +421,14 @@ button {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}/* ============================================================
+   REGLA CRÍTICA: OCULTAR VISTAS NO ACTIVAS
+   ============================================================ */
+.hidden {
+  display: none !important;
+}
+
+/* Asegurar que las vistas se comporten correctamente */
+.view {
+  width: 100%;
 }

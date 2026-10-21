@@ -1,5 +1,5 @@
 // ⚠️ CONFIGURACIÓN: PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ (termina en /exec)
-const API_URL = "https://script.google.com/macros/s/AKfycbwNXq1wyc1dbh1G5_e0R7FNNd4jCA6siLJclGVd3SGUnTaEdEEgZTb8AzII7DoK2ZOg/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbyZFQba2Lw4-R1dL_cGLLr-VZbNTsF5GFyz-BWPl3Pze42uH5V79Jov01KmQgILXtIW/exec"; 
 let chartInstance = null;
 let calendar = null;
 

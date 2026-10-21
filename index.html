@@ -7,164 +7,178 @@
   <title>KineFlow Clinical</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header class="app-header">
     <div class="brand">
       <div class="logo-icon">K</div>
-      <div>
-        <h1>KineFlow <span>Clinical</span></h1>
-        <small>Evidencia y Rehabilitación</small>
-      </div>
+      <div><h1>KineFlow <span>Clinical</span></h1><small>Rehabilitación con evidencia</small></div>
     </div>
     <div id="sync-status" class="sync-indicator offline">Offline</div>
   </header>
 
   <main class="main-content">
-    <!-- VISTA 1: LOGIN -->
+    <!-- LOGIN -->
     <div id="login-view" class="view">
       <div class="card login-card">
         <h2>Acceso Profesional</h2>
-        <p class="sub">Ingresá tus credenciales para acceder a tus pacientes.</p>
-        <label>Email profesional</label>
-        <input type="email" id="login-email" placeholder="ej: kine@correo.com" required>
-        <label>Contraseña</label>
-        <input type="password" id="login-password" placeholder="Mínimo 6 caracteres" required>
+        <label>Email</label><input type="email" id="login-email" placeholder="kine@correo.com">
+        <label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••">
         <button onclick="login()" class="btn-primary mt-2">Ingresar</button>
-        <p class="sub mt-2" style="text-align:center; font-size:0.75rem;">Si es tu primera vez, se creará una cuenta automáticamente.</p>
       </div>
     </div>
 
-    <!-- VISTA 2: DASHBOARD -->
+    <!-- DASHBOARD -->
     <div id="dashboard-view" class="view hidden">
-      <div class="header-actions">
-        <h2>Tus Pacientes</h2>
+      <div class="header-actions"><h2>Mis Pacientes</h2></div>
+      <div class="card" style="background:var(--primary-light); border:none; padding:15px;">
+        <h3 style="color:var(--primary); font-size:0.9rem; margin-bottom:5px;">📅 Próximo Turno</h3>
+        <p id="proximo-turno" style="font-size:1.1rem; font-weight:600;">No hay turnos agendados para hoy.</p>
       </div>
       <div id="patient-list" class="patient-grid"></div>
     </div>
 
-    <!-- VISTA 3: NUEVO PACIENTE -->
+    <!-- NUEVO PACIENTE -->
     <div id="new-patient-view" class="view hidden">
       <div class="header-actions">
-        <h2>Nuevo Paciente</h2>
-        <button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
+        <h2>Nuevo Paciente</h2><button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
       </div>
       <div class="card">
-        <label>Nombre completo</label>
-        <input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
-        <label>WhatsApp (código país, sin +)</label>
-        <input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
-        <label>Fecha de Ingreso</label>
-        <input type="date" id="new-patient-date">
+        <label>Nombre completo</label><input type="text" id="new-patient-name">
+        <label>WhatsApp</label><input type="tel" id="new-patient-phone">
         <div class="grid-2">
-          <div><label>Edad</label><input type="number" id="new-patient-age" placeholder="Años"></div>
-          <div><label>Peso (kg)</label><input type="number" id="new-patient-weight" placeholder="kg"></div>
+          <div><label>Edad</label><input type="number" id="new-patient-age"></div>
+          <div><label>Peso (kg)</label><input type="number" id="new-patient-weight"></div>
         </div>
-        <div class="grid-2">
-          <div><label>Altura (cm)</label><input type="number" id="new-patient-height" placeholder="cm"></div>
-          <div><label>Diagnóstico</label><select id="new-patient-pathology"></select></div>
-        </div>
+        <label>Diagnóstico</label><select id="new-patient-pathology"></select>
+        <label>Fecha Próximo Turno</label><input type="datetime-local" id="new-patient-turno">
+        
         <fieldset class="comorb-fieldset">
-          <legend>Banderas Rojas (Alertas)</legend>
-          <label class="check-item"><input type="checkbox" value="peso" class="flag"> Pérdida de peso inexplicada</label>
-          <label class="check-item"><input type="checkbox" value="fiebre" class="flag"> Fiebre o malestar</label>
-          <label class="check-item"><input type="checkbox" value="cancer" class="flag"> Antecedente de cáncer</label>
-          <label class="check-item"><input type="checkbox" value="neurologico" class="flag"> Déficit neurológico</label>
+          <legend>Banderas Rojas</legend>
+          <label class="check-item"><input type="checkbox" value="marcapasos" class="flag"> Marcapasos</label>
+          <label class="check-item"><input type="checkbox" value="cancer" class="flag"> Cáncer</label>
         </fieldset>
-        <fieldset class="comorb-fieldset">
-          <legend>Medicación (Contraindicaciones)</legend>
-          <label class="check-item"><input type="checkbox" value="anticoagulantes" class="med"> Anticoagulantes</label>
-          <label class="check-item"><input type="checkbox" value="corticoides" class="med"> Corticoides crónicos</label>
-          <label class="check-item"><input type="checkbox" value="aines" class="med"> AINEs crónicos</label>
-        </fieldset>
-        <button onclick="createPatient()" class="btn-primary mt-2">Guardar y Comenzar</button>
+        <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente</button>
       </div>
     </div>
 
-    <!-- VISTA 4: SESIÓN -->
+    <!-- SESIÓN CON PESTAÑAS -->
     <div id="session-view" class="view hidden">
       <div class="session-topbar">
         <button onclick="showView('dashboard-view')" class="btn-icon">←</button>
         <h2 id="session-patient-name">Paciente</h2>
-        <div class="timer-box">
-          <span id="session-timer">00:00</span>
-          <button onclick="toggleTimer()" id="timer-btn" class="btn-timer">▶</button>
-        </div>
+        <button onclick="exportarHistoria()" class="btn-icon" title="Exportar PDF">🖨️</button>
       </div>
-      <div class="session-content">
-        <div class="card accent-card">
-          <h3 id="patologia-nombre">Diagnóstico</h3>
-          <p class="sub" id="patologia-test">Test</p>
-          <button onclick="verTest()" class="btn-secondary w-100 mt-1">🔍 Ver Test Clínico</button>
+
+      <!-- CONTENIDO DE LAS PESTAÑAS -->
+      <div class="tab-content">
+        <!-- PESTAÑA 1: MAPA Y EVALUACIÓN -->
+        <div id="tab-mapa" class="tab-pane">
+          <div class="card">
+            <h3 id="patologia-nombre" style="text-align:center;">Patología</h3>
+            <p class="sub" id="patologia-test" style="text-align:center;">Test sugerido</p>
+            <button onclick="verTest()" class="btn-secondary w-100 mt-1">🔍 Ver Test Clínico</button>
+          </div>
+          <div class="card text-center">
+            <h3>📍 Foco de Dolor</h3>
+            <div class="body-map-container">
+              <!-- SVG DEL CUERPO HUMANO -->
+              <svg id="body-svg" viewBox="0 0 200 400">
+                <!-- Cabeza --><circle cx="100" cy="40" r="25" fill="#e2e8f0" />
+                <!-- Cuello --><rect x="90" y="65" width="20" height="20" fill="#e2e8f0" />
+                <!-- Torso --><rect x="60" y="85" width="80" height="120" rx="10" fill="#e2e8f0" />
+                <!-- Brazo Izq --><rect x="30" y="90" width="25" height="100" rx="10" fill="#e2e8f0" />
+                <!-- Brazo Der --><rect x="145" y="90" width="25" height="100" rx="10" fill="#e2e8f0" />
+                <!-- Pierna Izq --><rect x="65" y="210" width="30" height="150" rx="10" fill="#e2e8f0" />
+                <!-- Pierna Der --><rect x="105" y="210" width="30" height="150" rx="10" fill="#e2e8f0" />
+                <!-- Zonas de Dolor (ocultas por defecto) -->
+                <circle id="zone-cuello" cx="100" cy="75" r="15" fill="var(--danger)" opacity="0" />
+                <circle id="zone-hombro" cx="40" cy="100" r="20" fill="var(--danger)" opacity="0" />
+                <circle id="zone-hombro-der" cx="160" cy="100" r="20" fill="var(--danger)" opacity="0" />
+                <circle id="zone-lumbar" cx="100" cy="180" r="25" fill="var(--danger)" opacity="0" />
+                <circle id="zone-rodilla" cx="80" cy="300" r="18" fill="var(--danger)" opacity="0" />
+                <circle id="zone-rodilla-der" cx="120" cy="300" r="18" fill="var(--danger)" opacity="0" />
+                <circle id="zone-tobillo" cx="80" cy="360" r="12" fill="var(--danger)" opacity="0" />
+                <circle id="zone-tobillo-der" cx="120" cy="360" r="12" fill="var(--danger)" opacity="0" />
+                <circle id="zone-codo" cx="40" cy="170" r="12" fill="var(--danger)" opacity="0" />
+                <circle id="zone-codo-der" cx="160" cy="170" r="12" fill="var(--danger)" opacity="0" />
+              </svg>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Evaluación EVA</h3>
+            <div class="grid-2">
+              <div class="eva-box"><label>Reposo</label><div class="eva-value" id="eva-reposo-val">0</div><input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)"></div>
+              <div class="eva-box"><label>Movimiento</label><div class="eva-value" id="eva-movimiento-val">0</div><input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)"></div>
+            </div>
+          </div>
         </div>
 
-        <!-- PANEL DE EVOLUCIÓN -->
-        <div class="card">
-          <h3>📊 Evolución del Dolor</h3>
-          <div id="chart-evolucion" style="width:100%; height:150px; background:var(--bg); border-radius:12px; margin-top:10px; position:relative;">
-            <canvas id="canvas-evolucion" style="width:100%; height:100%;"></canvas>
+        <!-- PESTAÑA 2: EJERCICIOS Y AGENTES -->
+        <div id="tab-ejercicios" class="tab-pane hidden">
+          <div class="card">
+            <h3>Agentes Físicos</h3>
+            <div id="agents-list"></div>
+          </div>
+          <div class="card">
+            <h3>1. Consultorio (Camilla)</h3>
+            <div id="suggested-exercises" class="chips-container"></div>
+            <ul id="selected-consultorio" class="selected-list"></ul>
+          </div>
+          <div class="card border-teal">
+            <h3>2. Plan para Casa</h3>
+            <ul id="selected-casa" class="selected-list"></ul>
+            <button onclick="sendWhatsApp()" class="btn-whatsapp mt-2" style="width:100%;">📲 Enviar a WhatsApp</button>
           </div>
         </div>
 
-        <!-- PLAN DE SESIONES -->
-        <div class="card">
-          <h3>📋 Plan de 10 Sesiones</h3>
-          <div id="lista-sesiones"></div>
+        <!-- PESTAÑA 3: EVOLUCIÓN Y PLAN -->
+        <div id="tab-evolucion" class="tab-pane hidden">
+          <div class="card">
+            <h3>📊 Evolución del Dolor</h3>
+            <div style="height:200px; width:100%;"><canvas id="chart-evolucion"></canvas></div>
+          </div>
+          <div class="card">
+            <h3>📋 Plan de 10 Sesiones</h3>
+            <div id="lista-sesiones"></div>
+          </div>
         </div>
 
-        <div class="card">
-          <h3>1. Ejercicios en Consultorio</h3>
-          <div id="suggested-exercises" class="chips-container"></div>
-          <ul id="selected-consultorio" class="selected-list"></ul>
-        </div>
-        <div class="card border-teal">
-          <h3>2. Plan para Casa (WhatsApp)</h3>
-          <p class="sub">Estos ejercicios se enviarán al paciente.</p>
-          <ul id="selected-casa" class="selected-list"></ul>
-        </div>
-        <div class="card">
-          <h3>3. Agentes Físicos</h3>
-          <div id="agents-list"></div>
-        </div>
-        <div class="card">
-          <h3>4. Evaluación y Cierre</h3>
-          <div class="grid-2">
-            <div class="eva-box">
-              <label>Dolor Reposo (EVA)</label>
-              <div class="eva-value" id="eva-reposo-val">0</div>
-              <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
-            </div>
-            <div class="eva-box">
-              <label>Dolor Movimiento (EVA)</label>
-              <div class="eva-value" id="eva-movimiento-val">0</div>
-              <input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)">
-            </div>
+        <!-- PESTAÑA 4: CIERRE Y NOTAS -->
+        <div id="tab-cierre" class="tab-pane hidden">
+          <div class="card">
+            <h3>Notas Clínicas</h3>
+            <textarea id="session-notes" placeholder="Evolución, observaciones..."></textarea>
+            <button onclick="saveSession()" class="btn-primary mt-2">💾 Guardar Sesión y Avanzar</button>
           </div>
-          <textarea id="session-notes" placeholder="Notas clínicas, evolución..."></textarea>
-          <button onclick="saveSession()" class="btn-primary mt-2">💾 Guardar Sesión</button>
-          <button onclick="sendWhatsApp()" class="btn-whatsapp mt-1" style="background:#25D366; color:white; border-radius:12px; width:100%; padding:14px; font-weight:bold; border:none; margin-top:10px;">📲 Enviar Tarea por WhatsApp</button>
         </div>
       </div>
+
+      <!-- BARRA DE PESTAÑAS INFERIOR -->
+      <nav class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('mapa', this)"><span>🗺️</span>Mapa</button>
+        <button class="tab-btn" onclick="switchTab('ejercicios', this)"><span>🏋️</span>Terapia</button>
+        <button class="tab-btn" onclick="switchTab('evolucion', this)"><span>📊</span>Evolución</button>
+        <button class="tab-btn" onclick="switchTab('cierre', this)"><span>📝</span>Cierre</button>
+      </nav>
     </div>
   </main>
 
-  <nav class="bottom-nav">
-    <button onclick="showView('dashboard-view')" class="nav-item"><span class="nav-icon">🏠</span> Inicio</button>
-    <button onclick="showView('new-patient-view')" class="nav-item highlight"><span class="nav-icon">+</span> Paciente</button>
-  </nav>
-
-  <!-- MODAL DE IMÁGENES Y VIDEO -->
+  <!-- MODAL DE MEDIA -->
   <div id="media-modal" class="modal hidden">
     <div class="modal-content">
       <span class="modal-close" onclick="closeModal()">×</span>
       <h3 id="modal-title">Demostración</h3>
       <div style="text-align:center; padding: 20px 0;">
-        <p style="margin-bottom:15px; font-size:14px;">Buscá la explicación visual:</p>
-        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary" style="text-decoration:none; display:block; margin-bottom:10px; text-align:center;">▶ Ver Video en YouTube</a>
-        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary" style="text-decoration:none; display:block; text-align:center;">🖼️ Ver Imágenes (Posición Inicial/Final)</a>
+        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary" style="display:block; margin-bottom:10px; text-decoration:none;">▶ Ver Video</a>
+        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary" style="display:block; text-decoration:none;">🖼️ Ver Imágenes</a>
       </div>
     </div>
   </div>
+
+  <!-- ÁREA DE IMPRESIÓN (Oculta en pantalla) -->
+  <div id="print-area" class="print-only"></div>
 
   <div id="toast" class="toast hidden"></div>
   <script src="data/patologias.js"></script>

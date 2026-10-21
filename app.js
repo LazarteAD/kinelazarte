@@ -1,13 +1,12 @@
-// ⚠️ PEGÁ TU URL DE APPS SCRIPT ACÁ
-const API_URL = "https://script.google.com/macros/s/AKfycbwNXq1wyc1dbh1G5_e0R7FNNd4jCA6siLJclGVd3SGUnTaEdEEgZTb8AzII7DoK2ZOg/exec"; 
+const API_URL = "TU_URL_AQUI"; 
 let chartInstance = null;
+let calendar = null;
 
 let state = {
-  user: null, patients: [], currentPatient: null,
-  currentSession: { n: 1, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "" },
+  user: null, patients: [], currentPatient: null, turnos: [],
+  currentSession: { n: 1, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "" }
 };
 
-// MAPEO DE PATOLOGÍAS A ZONAS DEL CUERPO
 const ZONAS_DOLOR = {
   lumbalgia: ["zone-lumbar"], ciatica: ["zone-lumbar"], hernia_dorsal: ["zone-lumbar"], 
   cervicalgia: ["zone-cuello"], hernia_cervical: ["zone-cuello"],
@@ -35,44 +34,63 @@ function showView(viewId) {
   window.scrollTo(0, 0);
 }
 
-// --- LOGIN ---
-function login() {
+async function login() {
   const email = document.getElementById('login-email').value.trim();
   if (!email) return showToast('Ingresa tu email', true);
   state.user = { email };
   
-  const local = localStorage.getItem('kf_patients_' + email);
-  if (local) state.patients = JSON.parse(local);
+  const localP = localStorage.getItem('kf_patients_' + email);
+  if (localP) state.patients = JSON.parse(localP);
+  
+  const localT = localStorage.getItem('kf_turnos_' + email);
+  if (localT) state.turnos = JSON.parse(localT);
 
   showView('dashboard-view');
   renderPatientList();
-  renderProximoTurno();
 }
 
-// --- PACIENTES ---
 function createPatient() {
   const name = document.getElementById('new-patient-name').value.trim();
   const phone = document.getElementById('new-patient-phone').value.trim();
   const pathology = document.getElementById('new-patient-pathology').value;
-  const turno = document.getElementById('new-patient-turno').value;
+  const turnoDateTime = document.getElementById('new-patient-turno').value;
 
   if (!name || !phone) return showToast('Completa nombre y teléfono', true);
 
   const newPatient = { 
     id: Date.now().toString(), nombre: name, telefono: phone, patologia: pathology, 
-    fecha_turno: turno, sesionesCompletadas: 0, historial: [] 
+    sesionesCompletadas: 0, historial: [] 
   };
   
   state.patients.push(newPatient);
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
-  
+
+  if (turnoDateTime) {
+    const turno = {
+      id: 't_' + Date.now().toString(),
+      title: name + ' - ' + DB[pathology].nombre,
+      start: turnoDateTime,
+      end: new Date(new Date(turnoDateTime).getTime() + 60*60*1000).toISOString()
+    };
+    state.turnos.push(turno);
+    localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
+  }
+
+  document.getElementById('new-patient-name').value = '';
+  document.getElementById('new-patient-phone').value = '';
+  document.getElementById('new-patient-turno').value = '';
+
   showView('dashboard-view');
   renderPatientList();
-  renderProximoTurno();
+  showToast('Paciente guardado');
 }
 
 function renderPatientList() {
   const list = document.getElementById('patient-list');
+  if (state.patients.length === 0) {
+    list.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">No hay pacientes. ¡Toca "+"!</p>`;
+    return;
+  }
   list.innerHTML = state.patients.map((p, index) => {
     const patName = DB[p.patologia] ? DB[p.patologia].nombre : p.patologia;
     return `<div class="patient-card" onclick="openSession(${index})">
@@ -82,56 +100,67 @@ function renderPatientList() {
   }).join('');
 }
 
-function renderProximoTurno() {
-  const el = document.getElementById('proximo-turno');
-  const conTurno = state.patients.filter(p => p.fecha_turno).sort((a,b) => new Date(a.fecha_turno) - new Date(b.fecha_turno));
-  if (conTurno.length > 0) {
-    const p = conTurno[0];
-    const fecha = new Date(p.fecha_turno).toLocaleString('es-AR', { weekday:'short', hour:'2-digit', minute:'2-digit' });
-    el.innerHTML = `<b>${p.nombre}</b> - ${fecha}`;
-  } else {
-    el.textContent = 'No hay turnos agendados.';
-  }
+// --- CALENDARIO ---
+function initCalendar() {
+  const calendarEl = document.getElementById('calendar-container');
+  if (!calendarEl) return;
+  if (calendar) calendar.destroy();
+
+  calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    locale: 'es',
+    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
+    events: state.turnos,
+    dateClick: function(info) {
+      const nombre = prompt("Nombre del paciente para agendar:");
+      if (nombre) {
+        const turno = { id: 't_' + Date.now().toString(), title: nombre, start: info.dateStr + 'T10:00:00', end: info.dateStr + 'T11:00:00' };
+        state.turnos.push(turno);
+        localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
+        calendar.addEvent(turno);
+      }
+    },
+    eventClick: function(info) {
+      if (confirm("¿Eliminar este turno?")) {
+        info.event.remove();
+        state.turnos = state.turnos.filter(t => t.id !== info.event.id);
+        localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
+      }
+    }
+  });
+  calendar.render();
 }
 
-// --- SESIÓN Y PESTAÑAS ---
+// --- SESIÓN ---
 window.switchTab = function(tabId, btn) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
   document.getElementById('tab-' + tabId).classList.remove('hidden');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-
-  if (tabId === 'evolucion') {
-    renderGrafico(); // Renderizar gráfico solo cuando la pestaña es visible
-  }
+  if (tabId === 'evolucion') renderGrafico();
 };
 
 function openSession(patientIndex) {
   state.currentPatient = state.patients[patientIndex];
   const patData = DB[state.currentPatient.patologia];
   const sesionesCompletadas = state.currentPatient.sesionesCompletadas || 0;
+  
   state.currentSession = { n: sesionesCompletadas + 1, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "" };
   
   document.getElementById('session-patient-name').textContent = state.currentPatient.nombre;
   document.getElementById('patologia-nombre').textContent = patData.nombre;
   document.getElementById('patologia-test').textContent = 'Test: ' + patData.test;
   
-  // Renderizar Mapa de Dolor
   document.querySelectorAll('#body-svg circle').forEach(c => c.setAttribute('opacity', '0'));
   const zonas = ZONAS_DOLOR[state.currentPatient.patologia] || [];
-  zonas.forEach(z => {
-    const el = document.getElementById(z);
-    if (el) el.setAttribute('opacity', '0.8');
-  });
+  zonas.forEach(z => { const el = document.getElementById(z); if (el) el.setAttribute('opacity', '0.8'); });
 
-  // Renderizar Plan de Sesiones
   document.getElementById('lista-sesiones').innerHTML = SESIONES_PLAN.map(s => {
     let estado = s.n < sesionesCompletadas ? '✅' : (s.n === sesionesCompletadas + 1 ? '▶️' : '🔒');
     let clase = s.n < sesionesCompletadas ? 'completada' : (s.n > sesionesCompletadas + 1 ? 'bloqueada' : '');
     return `<div class="sesion-item ${clase}"><span>${estado} <b>Sesión ${s.n}:</b> ${s.fase}</span></div>`;
   }).join('');
 
-  // Renderizar Ejercicios
   const ejContainer = document.getElementById('suggested-exercises');
   ejContainer.innerHTML = '';
   if (patData && patData.ejercicios) {
@@ -149,7 +178,6 @@ function openSession(patientIndex) {
     });
   }
 
-  // Renderizar Agentes
   const agentContainer = document.getElementById('agents-list');
   agentContainer.innerHTML = '';
   if (patData && patData.agentes) {
@@ -165,6 +193,12 @@ function openSession(patientIndex) {
       agentContainer.appendChild(div);
     });
   }
+
+  document.getElementById('eva-reposo').value = 0; document.getElementById('eva-reposo-val').textContent = "0";
+  document.getElementById('eva-movimiento').value = 0; document.getElementById('eva-movimiento-val').textContent = "0";
+  document.getElementById('session-notes').value = "";
+  document.getElementById('selected-consultorio').innerHTML = "";
+  document.getElementById('selected-casa').innerHTML = "";
 
   showView('session-view');
   switchTab('mapa', document.querySelectorAll('.tab-btn')[0]);
@@ -186,7 +220,6 @@ function renderLists() {
   `).join('');
 }
 
-// --- GRÁFICO (Chart.js) ---
 function renderGrafico() {
   const ctx = document.getElementById('chart-evolucion').getContext('2d');
   if (chartInstance) chartInstance.destroy();
@@ -196,9 +229,7 @@ function renderGrafico() {
   const dataReposo = historial.map(h => h.eva_reposo);
   const dataMovimiento = historial.map(h => h.eva_movimiento);
 
-  if (historial.length === 0) {
-    labels.push('S1'); dataReposo.push(0); dataMovimiento.push(0);
-  }
+  if (historial.length === 0) { labels.push('S1'); dataReposo.push(0); dataMovimiento.push(0); }
 
   chartInstance = new Chart(ctx, {
     type: 'line',
@@ -209,32 +240,20 @@ function renderGrafico() {
         { label: 'Movimiento', data: dataMovimiento, borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.1)', tension: 0.3, fill: true }
       ]
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true, max: 10, title: { display: true, text: 'EVA (0-10)' } } },
-      plugins: { legend: { position: 'bottom' } }
-    }
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 10 } }, plugins: { legend: { position: 'bottom' } } }
   });
 }
 
-// --- GUARDAR SESIÓN ---
 function saveSession() {
   state.currentSession.notas = document.getElementById('session-notes').value;
-  
   if (!state.currentPatient.historial) state.currentPatient.historial = [];
   state.currentPatient.historial.push({
-    sesion: state.currentSession.n,
-    fecha: new Date().toISOString(),
-    eva_reposo: state.currentSession.eva_reposo,
-    eva_movimiento: state.currentSession.eva_movimiento,
-    notas: state.currentSession.notas
+    sesion: state.currentSession.n, fecha: new Date().toISOString(),
+    eva_reposo: state.currentSession.eva_reposo, eva_movimiento: state.currentSession.eva_movimiento, notas: state.currentSession.notas
   });
 
-  // Criterio de avance: Dolor <= 3
   if (state.currentSession.eva_reposo <= 3 && state.currentSession.eva_movimiento <= 3) {
-    if (state.currentPatient.sesionesCompletadas < state.currentSession.n) {
-      state.currentPatient.sesionesCompletadas = state.currentSession.n;
-    }
+    if (state.currentPatient.sesionesCompletadas < state.currentSession.n) state.currentPatient.sesionesCompletadas = state.currentSession.n;
     showToast('✅ Sesión guardada. Siguiente desbloqueada.');
   } else {
     showToast('⚠️ Guardada. No avanza por dolor > 3.', true);
@@ -245,41 +264,20 @@ function saveSession() {
   renderPatientList();
 }
 
-// --- EXPORTAR HISTORIA ---
 function exportarHistoria() {
   const p = state.currentPatient;
   const fecha = new Date().toLocaleDateString();
-  let html = `
-    <div class="print-header">
-      <h1>KineFlow - Historia Clínica</h1>
-      <p><b>Paciente:</b> ${p.nombre} | <b>Fecha:</b> ${fecha}</p>
-      <p><b>Diagnóstico:</b> ${DB[p.patologia].nombre}</p>
-    </div>
-  `;
-  
+  let html = `<div class="print-header"><h1>KineFlow - Historia Clínica</h1><p><b>Paciente:</b> ${p.nombre} | <b>Fecha:</b> ${fecha}</p><p><b>Diagnóstico:</b> ${DB[p.patologia].nombre}</p></div>`;
   if (p.historial && p.historial.length > 0) {
-    html += `<table border="1" style="width:100%; border-collapse:collapse; text-align:left;">
-      <tr><th>Sesión</th><th>Fecha</th><th>EVA Reposo</th><th>EVA Movimiento</th><th>Notas</th></tr>`;
-    p.historial.forEach(h => {
-      html += `<tr>
-        <td>${h.sesion}</td><td>${new Date(h.fecha).toLocaleDateString()}</td>
-        <td>${h.eva_reposo}/10</td><td>${h.eva_movimiento}/10</td><td>${h.notas || '-'}</td>
-      </tr>`;
-    });
+    html += `<table><tr><th>Sesión</th><th>Fecha</th><th>EVA Reposo</th><th>EVA Movimiento</th><th>Notas</th></tr>`;
+    p.historial.forEach(h => { html += `<tr><td>${h.sesion}</td><td>${new Date(h.fecha).toLocaleDateString()}</td><td>${h.eva_reposo}/10</td><td>${h.eva_movimiento}/10</td><td>${h.notas || '-'}</td></tr>`; });
     html += `</table>`;
-  } else {
-    html += `<p>No hay sesiones registradas aún.</p>`;
-  }
-
+  } else { html += `<p>No hay sesiones registradas aún.</p>`; }
   document.getElementById('print-area').innerHTML = html;
   window.print();
 }
 
-// --- UTILS ---
-function updateEva(type, val) {
-  document.getElementById(`eva-${type}-val`).textContent = val;
-  state.currentSession[`eva_${type}`] = parseInt(val);
-}
+function updateEva(type, val) { document.getElementById(`eva-${type}-val`).textContent = val; state.currentSession[`eva_${type}`] = parseInt(val); }
 function verMedia(nombre) {
   const modal = document.getElementById('media-modal');
   document.getElementById('modal-title').textContent = nombre;

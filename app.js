@@ -1,3 +1,4 @@
+// ⚠️ PEGÁ TU URL DE APPS SCRIPT ACÁ
 const API_URL = "https://script.google.com/macros/s/AKfycbwNXq1wyc1dbh1G5_e0R7FNNd4jCA6siLJclGVd3SGUnTaEdEEgZTb8AzII7DoK2ZOg/exec"; 
 
 let state = {
@@ -15,16 +16,16 @@ document.addEventListener('DOMContentLoaded', () => {
       option.value = key; option.textContent = DB[key].nombre; select.appendChild(option);
     }
   }
-  const savedUser = localStorage.getItem('kf_user');
-  if (savedUser) { state.user = JSON.parse(savedUser); showView('dashboard-view'); fetchData(); }
-  window.addEventListener('online', updateOnlineStatus); window.addEventListener('offline', updateOnlineStatus); updateOnlineStatus();
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
 });
 
 function updateOnlineStatus() {
   const el = document.getElementById('sync-status');
   if (!el) return;
-  if (navigator.onLine) { el.textContent = 'Online'; el.classList.add('online'); } 
-  else { el.textContent = 'Offline'; el.classList.remove('online'); }
+  if (navigator.onLine) { el.textContent = 'Online'; el.classList.add('online'); el.classList.remove('offline'); } 
+  else { el.textContent = 'Offline'; el.classList.remove('online'); el.classList.add('offline'); }
 }
 
 function showView(viewId) {
@@ -37,8 +38,9 @@ function showView(viewId) {
 function login() {
   const email = document.getElementById('login-email').value.trim();
   if (!email) return showToast('Ingresa tu email', true);
-  state.user = { email }; localStorage.setItem('kf_user', JSON.stringify(state.user));
-  showView('dashboard-view'); fetchData();
+  state.user = { email };
+  showView('dashboard-view');
+  fetchData();
 }
 
 function createPatient() {
@@ -47,34 +49,46 @@ function createPatient() {
   const pathology = document.getElementById('new-patient-pathology').value;
   const comorb = [...document.querySelectorAll('.comorb:checked')].map(c => c.value);
   if (!name || !phone) return showToast('Completa nombre y teléfono', true);
+
   const newPatient = { id: Date.now().toString(), email_kine: state.user.email, nombre: name, telefono: phone, patologia: pathology, comorbilidades: comorb };
-  state.patients.push(newPatient); localStorage.setItem('kf_patients', JSON.stringify(state.patients));
-  fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'savePaciente', paciente: newPatient }) }).catch(() => console.log('Offline'));
-  document.getElementById('new-patient-name').value = ''; document.getElementById('new-patient-phone').value = ''; document.querySelectorAll('.comorb').forEach(c => c.checked = false);
-  showView('dashboard-view'); renderPatientList(); showToast('Paciente guardado');
+  state.patients.push(newPatient);
+  
+  fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'savePaciente', paciente: newPatient }) }).catch(() => showToast('Error de conexión.', true));
+
+  document.getElementById('new-patient-name').value = '';
+  document.getElementById('new-patient-phone').value = '';
+  document.querySelectorAll('.comorb').forEach(c => c.checked = false);
+  
+  showView('dashboard-view');
+  renderPatientList();
+  showToast('Paciente guardado');
 }
 
 function fetchData() {
-  const local = localStorage.getItem('kf_patients');
-  if (local) { state.patients = JSON.parse(local); renderPatientList(); }
-  fetch(`${API_URL}?action=getData&email=${state.user.email}`).then(res => res.json()).then(data => {
-    if (data.pacientes && data.pacientes.length > 0) { state.patients = data.pacientes; localStorage.setItem('kf_patients', JSON.stringify(state.patients)); renderPatientList(); }
-  }).catch(() => console.log('Modo offline'));
+  fetch(`${API_URL}?action=getData&email=${state.user.email}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.pacientes) { state.patients = data.pacientes; renderPatientList(); }
+    })
+    .catch(err => console.log('Error al cargar datos', err));
 }
 
 function renderPatientList() {
   const list = document.getElementById('patient-list');
-  if (state.patients.length === 0) { list.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">No hay pacientes. ¡Toca "+ Nuevo"!</p>`; return; }
+  if (state.patients.length === 0) {
+    list.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">No hay pacientes. ¡Toca "+ Paciente"!</p>`;
+    return;
+  }
   list.innerHTML = state.patients.map((p, index) => {
     const patName = DB[p.patologia] ? DB[p.patologia].nombre : p.patologia;
-    return `<div class="patient-card" onclick="openSession(${index})"><div class="patient-avatar">${p.nombre.charAt(0).toUpperCase()}</div><div class="patient-info"><h3>${p.nombre}</h3><p>${patName}</p></div></div>`;
+    return `<div class="patient-card" onclick="openSession(${index})">
+      <div class="patient-avatar">${p.nombre.charAt(0).toUpperCase()}</div>
+      <div class="patient-info"><h3>${p.nombre}</h3><p>${patName}</p></div>
+    </div>`;
   }).join('');
 }
 
 // --- SESIÓN ---
-function getYouTubeLink(ejercicio) { return `https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + ejercicio)}`; }
-function getGoogleImageLink(ejercicio) { return `https://www.google.com/search?q=${encodeURIComponent('ejercicio kinesiologia ' + ejercicio)}&tbm=isch`; }
-
 function openSession(patientIndex) {
   state.currentPatient = state.patients[patientIndex];
   const patData = DB[state.currentPatient.patologia];
@@ -92,7 +106,6 @@ function openSession(patientIndex) {
   
   const ejContainer = document.getElementById('suggested-exercises');
   ejContainer.innerHTML = '';
-  
   if (patData && patData.ejercicios) {
     let todos = [];
     for (const tipo in patData.ejercicios) { todos = todos.concat(patData.ejercicios[tipo]); }
@@ -119,7 +132,7 @@ function openSession(patientIndex) {
       }
       const div = document.createElement('div');
       div.className = `agent-item ${isContra ? 'contra' : ''}`;
-      div.innerHTML = `<div><h4>${agent.nombre}</h4><small>${agent.dosis}</small>${isContra ? `<span class="agent-alert">⚠️ Contraindicado por comorbilidad</span>` : ''}</div><label class="switch"><input type="checkbox" ${isContra ? 'disabled' : ''} onchange="toggleAgent('${agent.nombre}', this.checked)"><span class="slider"></span></label>`;
+      div.innerHTML = `<div><h4>${agent.nombre}</h4><small>${agent.dosis}</small>${isContra ? `<span class="agent-alert">⚠️ Contraindicado</span>` : ''}</div><label class="switch"><input type="checkbox" ${isContra ? 'disabled' : ''} onchange="toggleAgent('${agent.nombre}', this.checked)"><span class="slider"></span></label>`;
       agentContainer.appendChild(div);
     });
   }
@@ -127,69 +140,63 @@ function openSession(patientIndex) {
 }
 
 function renderLists() {
-    const listCons = document.getElementById('selected-consultorio');
-    listCons.innerHTML = state.currentSession.consultorio.map((ej, i) => `
-        <li><span>${ej}</span><div><button class="btn-move" onclick="verInfo('${ej}')" style="color:var(--accent); border-color:var(--accent);">🔍 Ver</button><button class="btn-move" onclick="pasarACasa(${i})">→ Casa</button><button class="btn-remove" onclick="removeItem('consultorio', ${i})">×</button></div></li>
+    document.getElementById('selected-consultorio').innerHTML = state.currentSession.consultorio.map((ej, i) => `
+        <li><span>${ej}</span><div class="action-buttons">
+          <button class="btn-play" onclick="verVideo('${ej}')">▶ Video</button>
+          <button class="btn-move" onclick="pasarACasa(${i})">→ Casa</button>
+          <button class="btn-remove" onclick="removeItem('consultorio', ${i})">×</button>
+        </div></li>
     `).join('');
-    const listCasa = document.getElementById('selected-casa');
-    listCasa.innerHTML = state.currentSession.casa.map((ej, i) => `
-        <li style="border-left-color: var(--whatsapp);"><span>${ej}</span><div><button class="btn-move" onclick="verInfo('${ej}')" style="color:var(--whatsapp); border-color:var(--whatsapp);">🔍 Ver</button><button class="btn-remove" onclick="removeItem('casa', ${i})">×</button></div></li>
+    document.getElementById('selected-casa').innerHTML = state.currentSession.casa.map((ej, i) => `
+        <li style="border-left-color: var(--whatsapp);"><span>${ej}</span><div class="action-buttons">
+          <button class="btn-play" onclick="verVideo('${ej}')">▶ Video</button>
+          <button class="btn-remove" onclick="removeItem('casa', ${i})">×</button>
+        </div></li>
     `).join('');
 }
 
-// --- MODAL DE IMÁGENES Y VIDEO ---
-function verInfo(nombre) {
-  const modal = document.getElementById('image-modal');
+// --- REPRODUCTOR DE VIDEO INTEGRADO ---
+function verVideo(nombre) {
+  const modal = document.getElementById('video-modal');
   document.getElementById('modal-title').textContent = nombre;
   
-  // Buscar en YouTube (embed) y mostrar opción de Google Imágenes
-  const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + nombre)}`;
-  const imgUrl = getGoogleImageLink(nombre);
+  // Usamos el buscador de YouTube embed. Busca el ejercicio exacto.
+  const query = encodeURIComponent('ejercicio kinesiologia ' + nombre);
+  const url = `https://www.youtube.com/embed?listType=search&list=${query}`;
   
-  document.getElementById('modal-body').innerHTML = `
-    <div style="text-align:center; width:100%; padding:20px;">
-      <p style="margin-bottom:15px; font-size:14px;">Seleccioná cómo querés ver la explicación:</p>
-      <a href="${ytUrl}" target="_blank" class="btn-primary" style="text-decoration:none; display:block; margin-bottom:10px;">▶ Ver Videos en YouTube</a>
-      <a href="${imgUrl}" target="_blank" class="btn-secondary" style="text-decoration:none; display:block;">🖼️ Ver Imágenes en Google</a>
-    </div>
-  `;
-  document.getElementById('modal-external-link').style.display = 'none'; // Ocultamos el link de abajo porque ya están los botones
+  document.getElementById('video-iframe').src = url;
   modal.classList.remove('hidden');
 }
 
 function verTest() {
   const patData = DB[state.currentPatient.patologia];
   const testName = patData.test;
-  const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent('test kinesiologia ' + testName)}`;
-  const imgUrl = `https://www.google.com/search?q=${encodeURIComponent('test kinesiologia ' + testName)}&tbm=isch`;
-  
+  const modal = document.getElementById('video-modal');
   document.getElementById('modal-title').textContent = testName;
-  document.getElementById('modal-body').innerHTML = `
-    <div style="text-align:center; width:100%; padding:20px;">
-      <p style="margin-bottom:15px; font-size:14px;">Seleccioná cómo querés ver el test:</p>
-      <a href="${ytUrl}" target="_blank" class="btn-primary" style="text-decoration:none; display:block; margin-bottom:10px;">▶ Ver Video del Test</a>
-      <a href="${imgUrl}" target="_blank" class="btn-secondary" style="text-decoration:none; display:block;">🖼️ Ver Imágenes del Test</a>
-    </div>
-  `;
-  document.getElementById('modal-external-link').style.display = 'none';
-  document.getElementById('image-modal').classList.remove('hidden');
+  
+  const query = encodeURIComponent('test kinesiologia ' + testName);
+  const url = `https://www.youtube.com/embed?listType=search&list=${query}`;
+  
+  document.getElementById('video-iframe').src = url;
+  modal.classList.remove('hidden');
 }
 
-function closeModal() { document.getElementById('image-modal').classList.add('hidden'); }
+function closeModal() {
+  document.getElementById('video-modal').classList.add('hidden');
+  document.getElementById('video-iframe').src = ''; // Detiene el video
+}
 
-// --- UTILS ---
 function pasarACasa(index) { const ej = state.currentSession.consultorio[index]; state.currentSession.consultorio.splice(index, 1); state.currentSession.casa.push(ej); document.querySelectorAll('.chip').forEach(c => { if(c.textContent === ej) c.classList.remove('selected'); }); renderLists(); }
 function removeItem(lista, index) { const ej = state.currentSession[lista][index]; state.currentSession[lista].splice(index, 1); if(lista === 'consultorio') document.querySelectorAll('.chip').forEach(c => { if(c.textContent === ej) c.classList.remove('selected'); }); renderLists(); }
-function addManualExercise(lista) { const input = document.getElementById('manual-exercise-input'); const text = input.value.trim(); if (!text) return; state.currentSession[lista].push(text); renderLists(); input.value = ''; }
 function toggleAgent(nombre, isChecked) { if (isChecked) state.currentSession.agentes.push(nombre); else state.currentSession.agentes = state.currentSession.agentes.filter(a => a !== nombre); }
 function updateEva(type, value) { document.getElementById(`eva-${type}-val`).textContent = value; if (type === 'reposo') state.currentSession.eva_reposo = parseInt(value); else state.currentSession.eva_movimiento = parseInt(value); }
 
 function toggleTimer() {
   const btn = document.getElementById('timer-btn');
-  if (state.timer.running) { clearInterval(state.timer.interval); state.timer.running = false; btn.textContent = 'Reanudar'; } 
-  else { state.timer.interval = setInterval(() => { state.timer.seconds++; const m = Math.floor(state.timer.seconds / 60).toString().padStart(2, '0'); const s = (state.timer.seconds % 60).toString().padStart(2, '0'); document.getElementById('session-timer').textContent = `${m}:${s}`; if (state.timer.seconds === 2700) showToast('⏰ Recordatorio: 45 minutos de sesión.'); }, 1000); state.timer.running = true; btn.textContent = 'Pausar'; }
+  if (state.timer.running) { clearInterval(state.timer.interval); state.timer.running = false; btn.textContent = '▶'; } 
+  else { state.timer.interval = setInterval(() => { state.timer.seconds++; const m = Math.floor(state.timer.seconds / 60).toString().padStart(2, '0'); const s = (state.timer.seconds % 60).toString().padStart(2, '0'); document.getElementById('session-timer').textContent = `${m}:${s}`; if (state.timer.seconds === 2700) showToast('⏰ Recordatorio: 45 min.'); }, 1000); state.timer.running = true; btn.textContent = '⏸'; }
 }
-function resetTimer() { clearInterval(state.timer.interval); state.timer = { interval: null, seconds: 0, running: false }; document.getElementById('session-timer').textContent = '00:00'; document.getElementById('timer-btn').textContent = 'Iniciar'; }
+function resetTimer() { clearInterval(state.timer.interval); state.timer = { interval: null, seconds: 0, running: false }; document.getElementById('session-timer').textContent = '00:00'; document.getElementById('timer-btn').textContent = '▶'; }
 
 function saveSession() {
   state.currentSession.notas = document.getElementById('session-notes').value;
@@ -199,8 +206,12 @@ function saveSession() {
 
 function sendWhatsApp() {
   const phone = state.currentPatient.telefono; if (!phone) return showToast('El paciente no tiene teléfono', true); if (state.currentSession.casa.length === 0) return showToast('No hay ejercicios en el Plan para Casa', true);
-  let msg = `*Plan de Ejercicios para Casa* 🏠\n\n¡Hola ${state.currentPatient.nombre}! 👋\nAcá tenés la tarea de hoy:\n\n`;
-  state.currentSession.casa.forEach((ej, i) => { const link = getYouTubeLink(ej); msg += `*${i+1}.* ${ej}\n▶️ Ver cómo se hace: ${link}\n\n`; });
+  let msg = `*Plan de Ejercicios - KineFlow* 🏠\n\n¡Hola ${state.currentPatient.nombre}! 👋\nAcá tenés la tarea de hoy:\n\n`;
+  state.currentSession.casa.forEach((ej, i) => { 
+    msg += `*${i+1}.* ${ej}\n`; 
+    // Link directo a YouTube para el paciente
+    msg += `▶️ Video: https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + ej)}\n\n`; 
+  });
   msg += `_Cualquier duda, ¡escribime!_ 💪`;
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }

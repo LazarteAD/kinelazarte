@@ -1,13 +1,22 @@
-// ⚠️ CONFIGURACIÓN: PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ (termina en /exec)
+// ============================================================
+// KINEFLOW CLINICAL - Lógica Principal
+// ============================================================
+
+// ⚠️ PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ (termina en /exec)
 const API_URL = "https://script.google.com/macros/s/AKfycbyZFQba2Lw4-R1dL_cGLLr-VZbNTsF5GFyz-BWPl3Pze42uH5V79Jov01KmQgILXtIW/exec"; 
+
 let chartInstance = null;
 let calendar = null;
 
 let state = {
-  user: null, patients: [], currentPatient: null, turnos: [],
+  user: null, 
+  patients: [], 
+  currentPatient: null, 
+  turnos: [],
   currentSession: { n: 1, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "" }
 };
 
+// Mapeo de patologías a zonas del cuerpo (SVG)
 const ZONAS_DOLOR = {
   lumbalgia: ["zone-lumbar"], ciatica: ["zone-lumbar"], hernia_dorsal: ["zone-lumbar"], 
   cervicalgia: ["zone-cuello"], hernia_cervical: ["zone-cuello"],
@@ -17,13 +26,26 @@ const ZONAS_DOLOR = {
   esguince_tobillo: ["zone-tobillo", "zone-tobillo-der"], fascitis: ["zone-tobillo"]
 };
 
+// Dosificación según nivel de actividad
+const DOSIFICACION = {
+  sedentario: { series: 2, reps: "10-12", descanso: "60s", tiempoTotal: "40 min" },
+  activo: { series: 3, reps: "10-12", descanso: "45s", tiempoTotal: "45 min" },
+  deportista: { series: 4, reps: "8-10", descanso: "90s", tiempoTotal: "60 min" },
+  laboral_pesado: { series: 3, reps: "12-15", descanso: "60s", tiempoTotal: "50 min" }
+};
+
+// --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
   showView('login-view');
+  
+  // Llenar el select de patologías
   const select = document.getElementById('new-patient-pathology');
   if (select) {
     for (const key in DB) {
       const option = document.createElement('option');
-      option.value = key; option.textContent = DB[key].nombre; select.appendChild(option);
+      option.value = key; 
+      option.textContent = DB[key].nombre; 
+      select.appendChild(option);
     }
   }
   checkPendingSync();
@@ -36,7 +58,7 @@ function showView(viewId) {
   window.scrollTo(0, 0);
 }
 
-// --- LOGIN Y SINCRONIZACIÓN ---
+// --- AUTENTICACIÓN ---
 async function hashPassword(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
@@ -52,10 +74,13 @@ async function login() {
   
   const hash = await hashPassword(password);
   const storedHash = localStorage.getItem('kf_auth_' + email);
+  
   if (storedHash && storedHash !== hash) return showToast('Contraseña incorrecta', true);
   if (!storedHash) localStorage.setItem('kf_auth_' + email, hash);
 
   state.user = { email };
+  
+  // Cargar datos locales (Offline First)
   const localP = localStorage.getItem('kf_patients_' + email);
   if (localP) state.patients = JSON.parse(localP);
   const localT = localStorage.getItem('kf_turnos_' + email);
@@ -63,38 +88,54 @@ async function login() {
 
   showView('dashboard-view');
   renderPatientList();
-  syncPendingData(); // Intentar sincronizar datos offline
+  syncPendingData();
 }
 
 function checkPendingSync() {
   window.addEventListener('online', () => {
-    document.getElementById('sync-status').textContent = 'Online';
-    document.getElementById('sync-status').classList.add('online');
+    const el = document.getElementById('sync-status');
+    if(el) { el.textContent = 'Online'; el.classList.add('online'); }
     syncPendingData();
   });
   window.addEventListener('offline', () => {
-    document.getElementById('sync-status').textContent = 'Offline';
-    document.getElementById('sync-status').classList.remove('online');
+    const el = document.getElementById('sync-status');
+    if(el) { el.textContent = 'Offline'; el.classList.remove('online'); }
   });
 }
 
-// --- PACIENTES ---
+// --- GESTIÓN DE PACIENTES ---
 function createPatient() {
   const name = document.getElementById('new-patient-name').value.trim();
   const phone = document.getElementById('new-patient-phone').value.trim();
   const pathology = document.getElementById('new-patient-pathology').value;
+  const activity = document.getElementById('new-patient-activity').value;
+  const anamnesis = document.getElementById('new-patient-anamnesis').value.trim();
+  const meds = document.getElementById('new-patient-meds').value.trim();
   const turnoDateTime = document.getElementById('new-patient-turno').value;
+  
+  const redFlags = [...document.querySelectorAll('.red-flag:checked')].map(c => c.value);
+  const yellowFlags = [...document.querySelectorAll('.yellow-flag:checked')].map(c => c.value);
 
   if (!name || !phone) return showToast('Completa nombre y teléfono', true);
 
   const newPatient = { 
-    id: Date.now().toString(), nombre: name, telefono: phone, patologia: pathology, 
-    sesionesCompletadas: 0, historial: [] 
+    id: Date.now().toString(), 
+    nombre: name, 
+    telefono: phone, 
+    patologia: pathology, 
+    nivelActividad: activity, 
+    banderasRojas: redFlags, 
+    banderasAmarillas: yellowFlags,
+    anamnesis: anamnesis, 
+    medicacionTexto: meds,
+    sesionesCompletadas: 0, 
+    historial: [] 
   };
   
   state.patients.push(newPatient);
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
 
+  // Si se agendó un turno, guardarlo
   if (turnoDateTime) {
     const turno = {
       id: 't_' + Date.now().toString(),
@@ -106,27 +147,34 @@ function createPatient() {
     localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
   }
 
+  // Limpiar formulario
   document.getElementById('new-patient-name').value = '';
   document.getElementById('new-patient-phone').value = '';
+  document.getElementById('new-patient-anamnesis').value = '';
+  document.getElementById('new-patient-meds').value = '';
   document.getElementById('new-patient-turno').value = '';
+  document.querySelectorAll('.red-flag, .yellow-flag').forEach(c => c.checked = false);
 
   showView('dashboard-view');
   renderPatientList();
-  showToast('Paciente guardado');
-  queueForSync('savePaciente', newPatient); // Encolar para sincronización
+  showToast('Paciente guardado exitosamente');
+  queueForSync('savePaciente', newPatient);
 }
 
 function renderPatientList() {
   const list = document.getElementById('patient-list');
   if (state.patients.length === 0) {
-    list.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">No hay pacientes. ¡Toca "+"!</p>`;
+    list.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">No hay pacientes. ¡Toca "+" para agregar uno!</p>`;
     return;
   }
   list.innerHTML = state.patients.map((p, index) => {
     const patName = DB[p.patologia] ? DB[p.patologia].nombre : p.patologia;
     return `<div class="patient-card" onclick="openSession(${index})">
       <div class="patient-avatar">${p.nombre.charAt(0).toUpperCase()}</div>
-      <div class="patient-info"><h3>${p.nombre}</h3><p>${patName} · Sesión ${p.sesionesCompletadas || 0}/10</p></div>
+      <div class="patient-info">
+        <h3>${p.nombre}</h3>
+        <p>${patName} · Sesión ${p.sesionesCompletadas || 0}/10</p>
+      </div>
     </div>`;
   }).join('');
 }
@@ -138,7 +186,7 @@ function initCalendar() {
   if (calendar) calendar.destroy();
 
   calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
+    initialView: 'dayGridMonth', 
     locale: 'es',
     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
     events: state.turnos,
@@ -149,7 +197,7 @@ function initCalendar() {
         state.turnos.push(turno);
         localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
         calendar.addEvent(turno);
-        queueForSync('saveTurno', turno); // Encolar para sincronización
+        queueForSync('saveTurno', turno);
       }
     },
     eventClick: function(info) {
@@ -163,7 +211,7 @@ function initCalendar() {
   calendar.render();
 }
 
-// --- SESIÓN ---
+// --- VISTA DE SESIÓN ---
 window.switchTab = function(tabId, btn) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
   document.getElementById('tab-' + tabId).classList.remove('hidden');
@@ -177,22 +225,59 @@ function openSession(patientIndex) {
   const patData = DB[state.currentPatient.patologia];
   const sesionesCompletadas = state.currentPatient.sesionesCompletadas || 0;
   
+  // Reiniciar sesión
   state.currentSession = { n: sesionesCompletadas + 1, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "" };
   
+  // Cabecera
   document.getElementById('session-patient-name').textContent = state.currentPatient.nombre;
   document.getElementById('patologia-nombre').textContent = patData.nombre;
-  document.getElementById('patologia-test').textContent = 'Test: ' + patData.test;
   
+  // Anamnesis y Medicación
+  let anamnesisText = state.currentPatient.anamnesis || "Sin anamnesis registrada.";
+  document.getElementById('anamnesis-resumen').textContent = `"${anamnesisText}"`;
+  
+  let medsText = state.currentPatient.medicacionTexto;
+  if (medsText) {
+    document.getElementById('meds-resumen').innerHTML = `💊 <b>Medicación:</b> ${medsText}`;
+  } else {
+    document.getElementById('meds-resumen').innerHTML = '';
+  }
+
+  // Lógica de Dosificación y Kinesiofobia
+  let dos = DOSIFICACION[state.currentPatient.nivelActividad] || DOSIFICACION.sedentario;
+  let isKinesiofobo = state.currentPatient.banderasAmarillas && state.currentPatient.banderasAmarillas.includes('yellow_kinesiofobia');
+  
+  let dosText = `Test: ${patData.test}<br><small>Dosificación: ${dos.series} series x ${dos.reps} reps (${dos.tiempoTotal})</small>`;
+  if (isKinesiofobo) {
+      dosText += `<br><span style="color:var(--warning); font-weight:bold; display:block; margin-top:5px; font-size:0.8rem;">⚠️ Kinesiofobia: Priorizar educación y exposición gradual. Reducir series.</span>`;
+  }
+  document.getElementById('patologia-test').innerHTML = dosText;
+
+  // Alertas de Banderas
+  let flagsDiv = document.getElementById('flags-alert');
+  let flagsHTML = '';
+  if (state.currentPatient.banderasRojas && state.currentPatient.banderasRojas.length > 0) {
+      flagsHTML += `<div class="alert red">🚩 Banderas Rojas: ${state.currentPatient.banderasRojas.join(', ')}. <b>Derivar.</b></div>`;
+  }
+  if (state.currentPatient.banderasAmarillas && state.currentPatient.banderasAmarillas.length > 0) {
+      let am = state.currentPatient.banderasAmarillas.map(f => f === 'yellow_kinesiofobia' ? 'Kinesiofobia' : f).join(', ');
+      flagsHTML += `<div class="alert yellow">🟡 Banderas Amarillas: ${am}</div>`;
+  }
+  flagsDiv.innerHTML = flagsHTML;
+
+  // Mapa Corporal
   document.querySelectorAll('#body-svg circle').forEach(c => c.setAttribute('opacity', '0'));
   const zonas = ZONAS_DOLOR[state.currentPatient.patologia] || [];
   zonas.forEach(z => { const el = document.getElementById(z); if (el) el.setAttribute('opacity', '0.8'); });
 
+  // Plan de Sesiones
   document.getElementById('lista-sesiones').innerHTML = SESIONES_PLAN.map(s => {
     let estado = s.n < sesionesCompletadas ? '✅' : (s.n === sesionesCompletadas + 1 ? '▶️' : '🔒');
     let clase = s.n < sesionesCompletadas ? 'completada' : (s.n > sesionesCompletadas + 1 ? 'bloqueada' : '');
     return `<div class="sesion-item ${clase}"><span>${estado} <b>Sesión ${s.n}:</b> ${s.fase}</span></div>`;
   }).join('');
 
+  // Ejercicios
   const ejContainer = document.getElementById('suggested-exercises');
   ejContainer.innerHTML = '';
   if (patData && patData.ejercicios) {
@@ -210,14 +295,15 @@ function openSession(patientIndex) {
     });
   }
 
+  // Agentes Físicos
   const agentContainer = document.getElementById('agents-list');
   agentContainer.innerHTML = '';
   if (patData && patData.agentes) {
     patData.agentes.forEach(agentKey => {
       const agent = AGENTES[agentKey]; if (!agent) return;
       let isContra = false;
-      if (agent.contraindica && state.currentPatient.banderas) {
-        if (agent.contraindica.some(c => state.currentPatient.banderas.includes(c))) isContra = true;
+      if (agent.contraindica && state.currentPatient.banderasRojas) {
+        if (agent.contraindica.some(c => state.currentPatient.banderasRojas.includes(c))) isContra = true;
       }
       const div = document.createElement('div');
       div.className = `agent-item ${isContra ? 'contra' : ''}`;
@@ -226,6 +312,7 @@ function openSession(patientIndex) {
     });
   }
 
+  // Resetear EVA y notas
   document.getElementById('eva-reposo').value = 0; document.getElementById('eva-reposo-val').textContent = "0";
   document.getElementById('eva-movimiento').value = 0; document.getElementById('eva-movimiento-val').textContent = "0";
   document.getElementById('session-notes').value = "";
@@ -244,6 +331,7 @@ function renderLists() {
         <button class="btn-remove" onclick="removeItem('consultorio', ${i})">×</button>
       </div></li>
   `).join('');
+  
   document.getElementById('selected-casa').innerHTML = state.currentSession.casa.map((ej, i) => `
       <li style="border-left-color:var(--whatsapp);"><span>${ej}</span><div class="action-buttons">
         <button class="btn-play" onclick="verMedia('${ej}')">▶</button>
@@ -252,6 +340,51 @@ function renderLists() {
   `).join('');
 }
 
+// --- UTILIDADES DE TERAPIA ---
+function autocompletarCasa() {
+  const patData = DB[state.currentPatient.patologia];
+  if (patData && patData.ejercicios && patData.ejercicios.casa) {
+    patData.ejercicios.casa.forEach(ej => {
+      if (!state.currentSession.casa.includes(ej)) state.currentSession.casa.push(ej);
+    });
+    renderLists();
+    showToast('Rutina de casa autocompletada');
+  }
+}
+
+function pasarACasa(i) { 
+  const ej = state.currentSession.consultorio.splice(i, 1)[0]; 
+  state.currentSession.casa.push(ej); 
+  renderLists(); 
+}
+
+function removeItem(l, i) { 
+  state.currentSession[l].splice(i, 1); 
+  renderLists(); 
+}
+
+function toggleAgent(n, c) { 
+  if(c) state.currentSession.agentes.push(n); 
+  else state.currentSession.agentes = state.currentSession.agentes.filter(a => a !== n); 
+}
+
+function updateEva(type, val) { 
+  document.getElementById(`eva-${type}-val`).textContent = val; 
+  state.currentSession[`eva_${type}`] = parseInt(val); 
+}
+
+function verMedia(nombre) {
+  const modal = document.getElementById('media-modal');
+  document.getElementById('modal-title').textContent = nombre;
+  document.getElementById('modal-yt-link').href = `https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + nombre)}`;
+  document.getElementById('modal-img-link').href = `https://www.google.com/search?q=${encodeURIComponent('ejercicio kinesiologia ' + nombre + ' posicion inicial y final')}&tbm=isch`;
+  modal.classList.remove('hidden');
+}
+
+function verTest() { verMedia(DB[state.currentPatient.patologia].test); }
+function closeModal() { document.getElementById('media-modal').classList.add('hidden'); }
+
+// --- GRÁFICO Y GUARDADO ---
 function renderGrafico() {
   const ctx = document.getElementById('chart-evolucion').getContext('2d');
   if (chartInstance) chartInstance.destroy();
@@ -279,11 +412,16 @@ function renderGrafico() {
 function saveSession() {
   state.currentSession.notas = document.getElementById('session-notes').value;
   if (!state.currentPatient.historial) state.currentPatient.historial = [];
+  
   state.currentPatient.historial.push({
-    sesion: state.currentSession.n, fecha: new Date().toISOString(),
-    eva_reposo: state.currentSession.eva_reposo, eva_movimiento: state.currentSession.eva_movimiento, notas: state.currentSession.notas
+    sesion: state.currentSession.n, 
+    fecha: new Date().toISOString(),
+    eva_reposo: state.currentSession.eva_reposo, 
+    eva_movimiento: state.currentSession.eva_movimiento, 
+    notas: state.currentSession.notas
   });
 
+  // Criterio de avance: Dolor <= 3
   if (state.currentSession.eva_reposo <= 3 && state.currentSession.eva_movimiento <= 3) {
     if (state.currentPatient.sesionesCompletadas < state.currentSession.n) state.currentPatient.sesionesCompletadas = state.currentSession.n;
     showToast('✅ Sesión guardada. Siguiente desbloqueada.');
@@ -298,47 +436,75 @@ function saveSession() {
     paciente_nombre: state.currentPatient.nombre,
     patologia: state.currentPatient.patologia
   });
+  
   showView('dashboard-view');
   renderPatientList();
 }
 
-// --- EXPORTAR HISTORIA ---
+// --- IMPRESIÓN Y WHATSAPP ---
+function imprimirPlanCasa() {
+  if (state.currentSession.casa.length === 0) return showToast('No hay ejercicios en casa.', true);
+  
+  let html = `
+    <div class="print-header-home">
+      <h1>Plan de Ejercicios para Casa</h1>
+      <p><b>Paciente:</b> ${state.currentPatient.nombre}</p>
+      <p><b>Fecha:</b> ${new Date().toLocaleDateString()}</p>
+    </div>
+    <ol class="print-list-home">
+  `;
+  state.currentSession.casa.forEach(ej => { html += `<li>${ej}</li>`; });
+  html += `</ol><p style="margin-top:30px; font-size:12px; text-align:center;">KineFlow Clinical - Rehabilitación</p>`;
+
+  document.getElementById('print-home-area').innerHTML = html;
+  document.body.classList.add('printing-home');
+  window.print();
+  document.body.classList.remove('printing-home');
+}
+
 function exportarHistoria() {
   const p = state.currentPatient;
   const fecha = new Date().toLocaleDateString();
-  let html = `<div class="print-header"><h1>KineFlow - Historia Clínica</h1><p><b>Paciente:</b> ${p.nombre} | <b>Fecha:</b> ${fecha}</p><p><b>Diagnóstico:</b> ${DB[p.patologia].nombre}</p></div>`;
+  let html = `<div class="print-header">
+    <h1>Historia Clínica KineFlow</h1>
+    <p><b>Paciente:</b> ${p.nombre} | <b>Fecha:</b> ${fecha}</p>
+    <p><b>Diagnóstico:</b> ${DB[p.patologia].nombre}</p>
+    <p><b>Anamnesis:</b> ${p.anamnesis || '-'}</p>
+    <p><b>Medicación:</b> ${p.medicacionTexto || '-'}</p>`;
+    
+  if (p.banderasRojas && p.banderasRojas.length > 0) html += `<p style="color:red;"><b>Banderas Rojas:</b> ${p.banderasRojas.join(', ')}</p>`;
+  html += `</div>`;
+  
   if (p.historial && p.historial.length > 0) {
     html += `<table><tr><th>Sesión</th><th>Fecha</th><th>EVA Reposo</th><th>EVA Movimiento</th><th>Notas</th></tr>`;
-    p.historial.forEach(h => { html += `<tr><td>${h.sesion}</td><td>${new Date(h.fecha).toLocaleDateString()}</td><td>${h.eva_reposo}/10</td><td>${h.eva_movimiento}/10</td><td>${h.notas || '-'}</td></tr>`; });
+    p.historial.forEach(h => { 
+      html += `<tr><td>${h.sesion}</td><td>${new Date(h.fecha).toLocaleDateString()}</td><td>${h.eva_reposo}/10</td><td>${h.eva_movimiento}/10</td><td>${h.notas || '-'}</td></tr>`; 
+    });
     html += `</table>`;
-  } else { html += `<p>No hay sesiones registradas aún.</p>`; }
+  } else { 
+    html += `<p>No hay sesiones registradas aún.</p>`; 
+  }
+  
   document.getElementById('print-area').innerHTML = html;
   window.print();
 }
 
-// --- UTILIDADES Y SINCRONIZACIÓN ---
-function updateEva(type, val) { document.getElementById(`eva-${type}-val`).textContent = val; state.currentSession[`eva_${type}`] = parseInt(val); }
-function verMedia(nombre) {
-  const modal = document.getElementById('media-modal');
-  document.getElementById('modal-title').textContent = nombre;
-  document.getElementById('modal-yt-link').href = `https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + nombre)}`;
-  document.getElementById('modal-img-link').href = `https://www.google.com/search?q=${encodeURIComponent('ejercicio kinesiologia ' + nombre + ' posicion inicial y final')}&tbm=isch`;
-  modal.classList.remove('hidden');
-}
-function verTest() { verMedia(DB[state.currentPatient.patologia].test); }
-function closeModal() { document.getElementById('media-modal').classList.add('hidden'); }
-function pasarACasa(i) { const ej = state.currentSession.consultorio.splice(i, 1)[0]; state.currentSession.casa.push(ej); renderLists(); }
-function removeItem(l, i) { state.currentSession[l].splice(i, 1); renderLists(); }
-function toggleAgent(n, c) { if(c) state.currentSession.agentes.push(n); else state.currentSession.agentes = state.currentSession.agentes.filter(a => a !== n); }
 function sendWhatsApp() {
   if (state.currentSession.casa.length === 0) return showToast('No hay ejercicios en casa.', true);
-  let msg = `*Plan de Ejercicios* 🏠\nHola ${state.currentPatient.nombre}, acá tenés tu tarea:\n\n`;
-  state.currentSession.casa.forEach((ej, i) => { msg += `${i+1}. ${ej}\nVideo: https://www.youtube.com/results?search_query=${encodeURIComponent(ej)}\n\n`; });
+  
+  let msg = `*Plan de Ejercicios para Casa* 🏠\nHola ${state.currentPatient.nombre}, acá tenés tu tarea:\n\n`;
+  state.currentSession.casa.forEach((ej, i) => { 
+    msg += `${i+1}. ${ej}\nVideo: https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + ej)}\n\n`; 
+  });
+  
+  if (state.currentPatient.banderasAmarillas && state.currentPatient.banderasAmarillas.includes('yellow_kinesiofobia')) {
+      msg += `_Recordá: el movimiento es seguro y necesario para tu recuperación. Hacelo de a poco y sin miedo._`;
+  }
+  
   window.open(`https://wa.me/${state.currentPatient.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
 }
-function showToast(m, e=false) { const t=document.getElementById('toast'); t.textContent=m; t.className=`toast show ${e?'error':''}`; setTimeout(()=>t.className='toast', 3000); }
 
-// --- COLA DE SINCRONIZACIÓN ---
+// --- SINCRONIZACIÓN OFFLINE ---
 function queueForSync(action, data) {
   const queue = JSON.parse(localStorage.getItem('kf_sync_queue') || '[]');
   queue.push({ action, data, timestamp: Date.now() });
@@ -354,7 +520,7 @@ async function syncPendingData() {
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Evita CORS preflight
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: item.action, ...item.data }),
         redirect: 'follow'
       });
@@ -362,9 +528,17 @@ async function syncPendingData() {
       if (!result.success) throw new Error('Fallo en el servidor');
     } catch (error) {
       console.error('Error al sincronizar:', error);
-      remaining.push(item); // Reencolar si falla
+      remaining.push(item);
     }
   }
   localStorage.setItem('kf_sync_queue', JSON.stringify(remaining));
   if (remaining.length === 0) showToast('✅ Datos sincronizados');
+}
+
+// --- TOAST ---
+function showToast(m, e=false) { 
+  const t = document.getElementById('toast'); 
+  t.textContent = m; 
+  t.className = `toast show ${e ? 'error' : ''}`; 
+  setTimeout(() => t.className = 'toast', 3000); 
 }

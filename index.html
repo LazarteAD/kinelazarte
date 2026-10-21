@@ -4,152 +4,145 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f766e">
-  <title>KineFlow Pro</title>
+  <title>KineFlow Pro | Clinical Rehab</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Fuente Premium para un look clínico -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <header class="topbar">
+  <header class="app-header">
     <div class="brand">
-      <span class="logo">🩺</span>
+      <div class="logo-icon">K</div>
       <div>
-        <h1>KineFlow <span>Pro</span></h1>
-        <small>Rehabilitación con evidencia</small>
+        <h1>KineFlow <span>Clinical</span></h1>
+        <small>Evidencia y Rehabilitación</small>
       </div>
     </div>
-    <div id="sync-status" class="sync-indicator">Offline</div>
+    <div id="sync-status" class="sync-indicator offline">Offline</div>
   </header>
 
-  <div id="login-view" class="view">
-    <div class="card login-card">
-      <div class="login-icon">👋</div>
-      <h2>Bienvenido/a</h2>
-      <p class="sub">Ingresá tu email para sincronizar tus pacientes.</p>
-      <input type="email" id="login-email" placeholder="ej: kine@correo.com" required>
-      <button onclick="login()" class="btn-primary">Ingresar al Consultorio</button>
+  <main class="main-content">
+    <!-- VISTA 1: LOGIN -->
+    <div id="login-view" class="view">
+      <div class="card login-card">
+        <h2>Acceso Profesional</h2>
+        <p class="sub">Ingresá para gestionar tus pacientes y sesiones.</p>
+        <input type="email" id="login-email" placeholder="Email profesional" required>
+        <button onclick="login()" class="btn-primary mt-2">Ingresar</button>
+      </div>
     </div>
-  </div>
 
-  <div id="dashboard-view" class="view hidden">
-    <div class="header-actions">
-      <h2>Mis Pacientes</h2>
-      <button onclick="showView('new-patient-view')" class="btn-fab">+ Nuevo</button>
+    <!-- VISTA 2: DASHBOARD -->
+    <div id="dashboard-view" class="view hidden">
+      <div class="header-actions">
+        <h2>Tus Pacientes</h2>
+      </div>
+      <div id="patient-list" class="patient-grid"></div>
     </div>
-    <div id="patient-list" class="patient-grid"></div>
-  </div>
 
-  <div id="new-patient-view" class="view hidden">
-    <div class="header-actions">
-      <h2>Nuevo Paciente</h2>
-      <button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
+    <!-- VISTA 3: NUEVO PACIENTE -->
+    <div id="new-patient-view" class="view hidden">
+      <div class="header-actions">
+        <h2>Nuevo Paciente</h2>
+        <button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
+      </div>
+      <div class="card">
+        <label>Nombre completo</label>
+        <input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
+        <label>WhatsApp (código país, sin +)</label>
+        <input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
+        <label>Diagnóstico Principal</label>
+        <select id="new-patient-pathology"></select>
+        <fieldset class="comorb-fieldset">
+          <legend>Comorbilidades (Alertas)</legend>
+          <label class="check-item"><input type="checkbox" value="marcapasos" class="comorb"> Marcapasos</label>
+          <label class="check-item"><input type="checkbox" value="embarazo" class="comorb"> Embarazo</label>
+          <label class="check-item"><input type="checkbox" value="cancer" class="comorb"> Cáncer</label>
+        </fieldset>
+        <button onclick="createPatient()" class="btn-primary mt-2">Guardar y Comenzar</button>
+      </div>
     </div>
-    <div class="card">
-      <label>Nombre completo</label>
-      <input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
-      
-      <label>WhatsApp (con código de país, sin +)</label>
-      <input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
-      
-      <label>Diagnóstico Principal</label>
-      <select id="new-patient-pathology"></select>
 
-      <fieldset class="comorb-fieldset">
-        <legend>Comorbilidades (Genera Alertas)</legend>
-        <label class="check-item"><input type="checkbox" value="cardio" class="comorb"> Enf. Cardiovascular</label>
-        <label class="check-item"><input type="checkbox" value="marcapasos" class="comorb"> Marcapasos</label>
-        <label class="check-item"><input type="checkbox" value="cancer" class="comorb"> Cáncer</label>
-        <label class="check-item"><input type="checkbox" value="embarazo" class="comorb"> Embarazo</label>
-      </fieldset>
-
-      <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente</button>
-    </div>
-  </div>
-
-  <div id="session-view" class="view hidden">
-    <div class="session-header card">
-      <div class="session-title">
-        <button onclick="showView('dashboard-view')" class="btn-back">←</button>
+    <!-- VISTA 4: SESIÓN -->
+    <div id="session-view" class="view hidden">
+      <div class="session-topbar">
+        <button onclick="showView('dashboard-view')" class="btn-icon">←</button>
         <h2 id="session-patient-name">Paciente</h2>
-      </div>
-      <div class="timer-container">
-        <div class="timer" id="session-timer">00:00</div>
-        <button onclick="toggleTimer()" id="timer-btn" class="btn-secondary">Iniciar</button>
-      </div>
-    </div>
-    
-    <div class="session-content">
-      
-      <!-- INFO PATOLOGÍA Y TEST -->
-      <div class="card" style="background: var(--primary-light); border: 1px solid var(--primary);">
-        <h3>Información Clínica</h3>
-        <p id="patologia-nombre" style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;"></p>
-        <p class="sub" id="patologia-test"></p>
-        <button onclick="verTest()" class="btn-secondary" style="width:100%; margin-top:10px;">🔍 Ver cómo se realiza el Test</button>
-      </div>
-
-      <div class="card">
-        <h3>1. Ejercicios para la Sesión</h3>
-        <p class="sub">Toca para agregar. Puedes pasarlos a "Casa" con la flecha.</p>
-        <div id="suggested-exercises" class="chips-container"></div>
-        
-        <ul id="selected-consultorio" class="selected-list"></ul>
-      </div>
-      
-      <div class="card" style="border: 2px solid var(--primary);">
-        <h3>2. Plan para Casa (WhatsApp)</h3>
-        <ul id="selected-casa" class="selected-list"></ul>
-        
-        <div class="manual-add">
-          <input type="text" id="manual-exercise-input" placeholder="Agregar ejercicio manual...">
-          <button onclick="addManualExercise('casa')" class="btn-secondary">+</button>
+        <div class="timer-box">
+          <span id="session-timer">00:00</span>
+          <button onclick="toggleTimer()" id="timer-btn" class="btn-timer">▶</button>
         </div>
       </div>
       
-      <div class="card">
-        <h3>3. Agentes Físicos</h3>
-        <div id="agents-list"></div>
-      </div>
+      <div class="session-content">
+        <div class="card accent-card">
+          <h3 id="patologia-nombre">Diagnóstico</h3>
+          <p class="sub" id="patologia-test">Test</p>
+          <button onclick="verTest()" class="btn-secondary w-100 mt-1">🔍 Ver Test Clínico</button>
+        </div>
 
-      <div class="card">
-        <h3>4. Dolor (EVA 0-10)</h3>
-        <div class="grid-2">
-          <div class="eva-box">
-            <label>Reposo</label>
-            <div class="eva-value" id="eva-reposo-val">0</div>
-            <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
-          </div>
-          <div class="eva-box">
-            <label>Movimiento</label>
-            <div class="eva-value" id="eva-movimiento-val">0</div>
-            <input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)">
+        <div class="card">
+          <h3>1. Ejercicios en Consultorio</h3>
+          <div id="suggested-exercises" class="chips-container"></div>
+          <ul id="selected-consultorio" class="selected-list"></ul>
+        </div>
+        
+        <div class="card border-teal">
+          <h3>2. Plan para Casa (WhatsApp)</h3>
+          <p class="sub">Estos ejercicios se enviarán al paciente.</p>
+          <ul id="selected-casa" class="selected-list"></ul>
+        </div>
+        
+        <div class="card">
+          <h3>3. Agentes Físicos</h3>
+          <div id="agents-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>4. Escala de Dolor (EVA)</h3>
+          <div class="grid-2">
+            <div class="eva-box">
+              <label>Reposo</label>
+              <div class="eva-value" id="eva-reposo-val">0</div>
+              <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
+            </div>
+            <div class="eva-box">
+              <label>Movimiento</label>
+              <div class="eva-value" id="eva-movimiento-val">0</div>
+              <input type="range" id="eva-movimiento" min="0" max="10" value="0" oninput="updateEva('movimiento', this.value)">
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div class="card">
-        <h3>5. Notas y Cierre</h3>
-        <textarea id="session-notes" placeholder="Evolución, ajustes..."></textarea>
         
-        <div class="action-buttons">
-          <button onclick="saveSession()" class="btn-primary">💾 Guardar Sesión</button>
-          <button onclick="sendWhatsApp()" class="btn-whatsapp">📲 Enviar Tarea por WhatsApp</button>
+        <div class="card">
+          <textarea id="session-notes" placeholder="Notas clínicas, evolución..."></textarea>
+          <button onclick="saveSession()" class="btn-primary mt-2">💾 Guardar Sesión</button>
+          <button onclick="sendWhatsApp()" class="btn-whatsapp mt-1">📲 Enviar Tarea</button>
         </div>
       </div>
-
     </div>
-  </div>
+  </main>
 
-  <!-- MODAL DE IMÁGENES / VIDEO -->
-  <div id="image-modal" class="modal hidden">
+  <!-- BARRA DE NAVEGACIÓN INFERIOR -->
+  <nav class="bottom-nav">
+    <button onclick="showView('dashboard-view')" class="nav-item">
+      <span class="nav-icon">🏠</span> Inicio
+    </button>
+    <button onclick="showView('new-patient-view')" class="nav-item highlight">
+      <span class="nav-icon">+</span> Paciente
+    </button>
+  </nav>
+
+  <!-- MODAL DE VIDEO INTEGRADO -->
+  <div id="video-modal" class="modal hidden">
     <div class="modal-content">
       <span class="modal-close" onclick="closeModal()">×</span>
-      <h3 id="modal-title">Título</h3>
-      <div class="modal-body" id="modal-body">
-        <!-- Acá va el iframe de video o imagen -->
+      <h3 id="modal-title">Demostración</h3>
+      <div class="video-container">
+        <iframe id="video-iframe" src="" frameborder="0" allowfullscreen></iframe>
       </div>
-      <div style="text-align:center; margin-top:15px;">
-        <a id="modal-external-link" href="#" target="_blank" class="btn-secondary" style="text-decoration:none; display:inline-block;">Abrir en nueva pestaña</a>
-      </div>
+      <p class="sub mt-1" style="text-align:center;">Video demostrativo extraído de YouTube.</p>
     </div>
   </div>
 

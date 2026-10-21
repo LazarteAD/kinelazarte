@@ -12,7 +12,6 @@ let state = {
   currentSession: { n: 1, patologia: "", sessionTime: 50, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_activo: 0, eva_pasivo: 0, notas: "", zonasDolor: [] }
 };
 
-// Catálogos base (se cargan desde data/patologias.js)
 let DB_EXTENDED = {};
 let PATOLOGIAS_PERSONALIZADAS = {};
 let EJERCICIOS_PERSONALIZADOS = {};
@@ -37,13 +36,36 @@ const ZONAS = {
   tobillo: ["esguince_tobillo", "aquiles", "fascitis", "metatarsalgia"]
 };
 
+// ============ FUNCIONES BASE ============
+function showView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  const target = document.getElementById(viewId);
+  if (target) target.classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function haptic(ms = 10) {
+  if (navigator.vibrate) navigator.vibrate(ms);
+}
+
+function showToast(m, e = false) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = m;
+  t.className = `toast show ${e ? 'error' : ''}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
 // ============ INIT ============
 document.addEventListener('DOMContentLoaded', () => {
-  // Fusionar catálogos base con personalizados
-  DB_EXTENDED = Object.assign({}, DB);
-  cargarPersonalizados();
-  showView('login-view');
-  checkPendingSync();
+  try {
+    DB_EXTENDED = Object.assign({}, typeof DB !== 'undefined' ? DB : {});
+    cargarPersonalizados();
+    showView('login-view');
+    checkPendingSync();
+  } catch (e) {
+    console.error('Error en inicialización:', e);
+  }
 });
 
 function cargarPersonalizados() {
@@ -51,10 +73,8 @@ function cargarPersonalizados() {
     PATOLOGIAS_PERSONALIZADAS = JSON.parse(localStorage.getItem('kf_patologias_custom') || '{}');
     EJERCICIOS_PERSONALIZADOS = JSON.parse(localStorage.getItem('kf_ejercicios_custom') || '{}');
     
-    // Fusionar patologías personalizadas en DB_EXTENDED
     Object.assign(DB_EXTENDED, PATOLOGIAS_PERSONALIZADAS);
     
-    // Fusionar ejercicios personalizados en las patologías correspondientes
     Object.keys(EJERCICIOS_PERSONALIZADOS).forEach(pat => {
       if (DB_EXTENDED[pat]) {
         if (!DB_EXTENDED[pat].ejercicios) DB_EXTENDED[pat].ejercicios = {};
@@ -93,10 +113,9 @@ async function login() {
   const localT = localStorage.getItem('kf_turnos_' + email);
   if (localT) state.turnos = JSON.parse(localT);
   
-  // Cargar perfil profesional
   const prof = JSON.parse(localStorage.getItem('kf_perfil_' + email) || '{}');
-  document.getElementById('prof-name').value = prof.nombre || '';
-  document.getElementById('prof-matricula').value = prof.matricula || '';
+  if (document.getElementById('prof-name')) document.getElementById('prof-name').value = prof.nombre || '';
+  if (document.getElementById('prof-matricula')) document.getElementById('prof-matricula').value = prof.matricula || '';
   
   showView('dashboard-view');
   renderPatientList();
@@ -200,7 +219,6 @@ function createPatient() {
     queueForSync('saveTurno', turno);
   }
 
-  // Limpiar form
   document.getElementById('new-patient-name').value = '';
   document.getElementById('new-patient-phone').value = '';
   document.getElementById('new-patient-anamnesis').value = '';
@@ -218,6 +236,7 @@ function createPatient() {
 
 function renderPatientList() {
   const list = document.getElementById('patient-list');
+  if (!list) return;
   if (state.patients.length === 0) {
     list.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:2rem;">No hay pacientes. ¡Toca "+ Nuevo Paciente"!</p>`;
     return;
@@ -233,6 +252,15 @@ function renderPatientList() {
       <button onclick="event.stopPropagation(); eliminarPaciente(${index})" class="btn-delete">🗑️</button>
     </div>`;
   }).join('');
+}
+
+function eliminarPaciente(index) {
+  if (confirm(`¿Eliminar a ${state.patients[index].nombre}?`)) {
+    state.patients.splice(index, 1);
+    localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
+    renderPatientList();
+    showToast('Paciente eliminado');
+  }
 }
 
 function abrirPaciente(index) {
@@ -270,6 +298,7 @@ function mostrarPatologiasPaciente() {
   html += `<button onclick="agregarPatologia()" class="btn-secondary mt-2">+ Agregar otra patología</button></div></div>`;
   const temp = document.createElement('div');
   temp.innerHTML = html;
+  temp.id = 'temp-view';
   document.body.appendChild(temp);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -281,6 +310,7 @@ function agregarPatologia() {
   let html = `<div class="view"><div class="header-actions"><h2>Agregar Patología</h2><button onclick="showView('dashboard-view'); renderPatientList(); renderAgendaHoy();" class="btn-text">Cancelar</button></div><div class="card glass"><label>Patología</label><select id="nueva-patologia">${opciones}</select><button onclick="confirmarPatologia()" class="btn-primary mt-2">Agregar</button><button onclick="crearPatologiaPersonalizada()" class="btn-secondary mt-1">+ Crear Patología Personalizada</button></div></div>`;
   const temp = document.createElement('div');
   temp.innerHTML = html;
+  temp.id = 'temp-view';
   document.body.appendChild(temp);
 }
 
@@ -298,10 +328,8 @@ function confirmarPatologia() {
   }
   
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
-  document.body.lastChild.remove();
-  showView('dashboard-view');
-  renderPatientList();
-  renderAgendaHoy();
+  document.getElementById('temp-view')?.remove();
+  mostrarPatologiasPaciente();
   showToast('Patología agregada');
   haptic(20);
 }
@@ -322,14 +350,13 @@ function crearPatologiaPersonalizada() {
   localStorage.setItem('kf_patologias_custom', JSON.stringify(PATOLOGIAS_PERSONALIZADAS));
   DB_EXTENDED[key] = PATOLOGIAS_PERSONALIZADAS[key];
   
-  // Recargar el selector
   const p = state.currentPatient;
   p.patologias.push(key);
   p.sesionesCompletadas[key] = 0;
   p.historial[key] = [];
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
   
-  document.body.lastChild.remove();
+  document.getElementById('temp-view')?.remove();
   mostrarPatologiasPaciente();
   showToast('Patología personalizada creada');
 }
@@ -341,7 +368,7 @@ function eliminarPatologia(pat) {
   delete p.sesionesCompletadas[pat];
   delete p.historial[pat];
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
-  document.body.lastChild.remove();
+  document.getElementById('temp-view')?.remove();
   mostrarPatologiasPaciente();
 }
 
@@ -379,6 +406,8 @@ function actualizarResumenZonas() {
 function iniciarSesion(pat) {
   const p = state.currentPatient;
   const patData = DB_EXTENDED[pat];
+  if (!patData) return showToast('Patología no encontrada', true);
+  
   const completadas = parseInt((p.sesionesCompletadas && p.sesionesCompletadas[pat]) || 0, 10);
   
   state.currentSession = { 
@@ -395,9 +424,7 @@ function iniciarSesion(pat) {
     zonasDolor: [] 
   };
   
-  document.body.querySelectorAll('.view').forEach(v => {
-    if (v !== document.getElementById('dashboard-view') && v !== document.getElementById('session-view')) v.remove();
-  });
+  document.querySelectorAll('#temp-view').forEach(v => v.remove());
   
   document.getElementById('session-patient-name').textContent = `${p.numero} - ${p.nombre}`;
   document.getElementById('anamnesis-resumen').textContent = `"${p.anamnesis || 'Sin anamnesis'}"`;
@@ -414,11 +441,10 @@ function iniciarSesion(pat) {
   document.getElementById('flags-alert').innerHTML = flagsHTML;
 
   if (p.medicacionTexto) {
-    const farmaco = buscarFarmaco(p.medicacionTexto);
+    const farmaco = typeof buscarFarmaco !== 'undefined' ? buscarFarmaco(p.medicacionTexto) : null;
     document.getElementById('farmaco-alert').innerHTML = farmaco ? `<div class="alert red">⚠️ <b>Alerta Farmacológica:</b> ${farmaco.riesgo}</div>` : '';
   }
 
-  // Catálogo de Ejercicios
   const catContainer = document.getElementById('catalogo-ejercicios');
   catContainer.innerHTML = '';
   if (patData.ejercicios) {
@@ -439,7 +465,6 @@ function iniciarSesion(pat) {
     });
   }
 
-  // Agentes Físicos
   const agentContainer = document.getElementById('agents-list');
   agentContainer.innerHTML = '';
   if (patData.agentes) {
@@ -461,7 +486,6 @@ function iniciarSesion(pat) {
     });
   }
 
-  // Plan de 10 sesiones
   document.getElementById('lista-sesiones').innerHTML = SESIONES_PLAN.map(s => {
     let estado = s.n <= completadas ? '✅' : (s.n === completadas + 1 ? '▶️' : '🔒');
     let clase = s.n <= completadas ? 'completed' : (s.n > completadas + 1 ? 'locked' : 'current');
@@ -502,35 +526,17 @@ function agregarEjercicioPersonalizado() {
   
   const ejercicio = { nombre: nombre.trim(), series, reps, tiempo, descanso: '45s' };
   
-  // Guardar en personalizados
   const pat = state.currentSession.patologia;
   if (!EJERCICIOS_PERSONALIZADOS[pat]) EJERCICIOS_PERSONALIZADOS[pat] = { consultorio: [] };
   if (!EJERCICIOS_PERSONALIZADOS[pat].consultorio) EJERCICIOS_PERSONALIZADOS[pat].consultorio = [];
   EJERCICIOS_PERSONALIZADOS[pat].consultorio.push(ejercicio);
   localStorage.setItem('kf_ejercicios_custom', JSON.stringify(EJERCICIOS_PERSONALIZADOS));
   
-  // Agregar a DB_EXTENDED
   if (!DB_EXTENDED[pat].ejercicios) DB_EXTENDED[pat].ejercicios = {};
   if (!DB_EXTENDED[pat].ejercicios.consultorio) DB_EXTENDED[pat].ejercicios.consultorio = [];
   DB_EXTENDED[pat].ejercicios.consultorio.push(ejercicio);
   
-  // Recargar catálogo y agregar a la sesión
   addEjercicioByName(ejercicio.nombre);
-  
-  // Recargar la vista de terapia para mostrar el nuevo ejercicio en el catálogo
-  const catContainer = document.getElementById('catalogo-ejercicios');
-  const div = document.createElement('div');
-  div.className = 'catalogo-item';
-  const nombreSeguro = ejercicio.nombre.replace(/'/g, "\\'");
-  div.innerHTML = `
-    <div class="info">
-      <b>${ejercicio.nombre}</b>
-      <small>${ejercicio.series} series × ${ejercicio.reps} reps · ${ejercicio.tiempo}</small>
-    </div>
-    <button class="btn-add" onclick="addEjercicioByName('${nombreSeguro}')">+</button>
-  `;
-  catContainer.appendChild(div);
-  
   showToast('Ejercicio personalizado agregado');
 }
 
@@ -554,7 +560,6 @@ function renderSelectedExercises() {
   `).join('');
 }
 
-// ============ LÓGICA DE TIEMPO Y AGENTES ============
 function selectSessionTime(minutos, element) {
   state.currentSession.sessionTime = minutos;
   document.querySelectorAll('.timer-chip').forEach(c => c.classList.remove('active'));
@@ -597,10 +602,10 @@ function calcularTiempoTotal() {
   }
 }
 
-// ============ MODAL DE VIDEO ============
+// ============ VIDEO Y EVIDENCIA ============
 function verMedia(nombre) {
   document.getElementById('modal-title').textContent = nombre;
-  const videoUrl = getVideoUrl(nombre);
+  const videoUrl = typeof getVideoUrl !== 'undefined' ? getVideoUrl(nombre) : '';
   document.getElementById('video-frame').src = videoUrl;
   document.getElementById('media-modal').classList.remove('hidden');
 }
@@ -615,11 +620,10 @@ function closeModal() {
   document.getElementById('video-frame').src = '';
 }
 
-// ============ EVIDENCIA Y BIBLIOGRAFÍA ============
 function renderEvidencia(pat) {
   const panel = document.getElementById('evidencia-panel');
   if (!panel) return;
-  const ev = EVIDENCIA[pat];
+  const ev = typeof EVIDENCIA !== 'undefined' ? EVIDENCIA[pat] : null;
   if (!ev) {
     panel.innerHTML = '<p class="sub">No hay evidencia específica cargada para esta patología.</p>';
     return;
@@ -633,6 +637,7 @@ function renderEvidencia(pat) {
 function renderBibliografia() {
   const el = document.getElementById('bibliografia-list');
   if (!el) return;
+  if (typeof BIBLIOGRAFIA === 'undefined') return;
   el.innerHTML = Object.values(BIBLIOGRAFIA).map(b => `
     <div style="padding:8px 0; border-bottom:1px solid var(--border-light);">
       <b>${b.autor}.</b> <i>${b.titulo}</i>. ${b.editorial}, ${b.edicion}, ${b.anio}.
@@ -641,7 +646,6 @@ function renderBibliografia() {
   `).join('');
 }
 
-// ============ EVOLUCIÓN Y GRÁFICO ============
 function renderGrafico() {
   const canvas = document.getElementById('chart-evolucion');
   if (!canvas) return;
@@ -751,12 +755,11 @@ function updateEva(type, val) {
   haptic(8);
 }
 
-// ============ PESTAÑAS ============
 function switchTab(tabId, btn) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
   document.getElementById('tab-' + tabId).classList.remove('hidden');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   haptic(10);
   
   if (tabId === 'evolucion') renderGrafico();
@@ -787,17 +790,14 @@ function initCalendar() {
   calendar.render();
 }
 
-// ============ EXPORTAR CSV ============
 function exportarTodoCSV() {
   if (state.patients.length === 0) return showToast('No hay pacientes para exportar.', true);
-  
   let csv = 'Paciente,Edad,Patologías,Sesiones Completadas,Anamnesis,Medicación\n';
   state.patients.forEach(p => {
     const pats = (p.patologias || []).map(k => DB_EXTENDED[k] ? DB_EXTENDED[k].nombre : k).join('; ');
     const sesiones = (p.patologias || []).map(k => `${k}: ${p.sesionesCompletadas[k] || 0}/10`).join('; ');
     csv += `"${p.nombre}",${p.edad},"${pats}","${sesiones}","${p.anamnesis || ''}","${p.medicacionTexto || ''}"\n`;
   });
-  
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -805,14 +805,35 @@ function exportarTodoCSV() {
   link.click();
 }
 
-// ============ TOAST Y SYNC ============
-function showToast(m, e = false) {
-  const t = document.getElementById('toast');
-  t.textContent = m;
-  t.className = `toast show ${e ? 'error' : ''}`;
-  setTimeout(() => t.className = 'toast', 3000);
+function exportarHistoria() {
+  const p = state.currentPatient;
+  const prof = JSON.parse(localStorage.getItem('kf_perfil_' + state.user.email) || '{}');
+  let html = `<div class="print-header">
+    <h1>Historia Clínica - ${p.numero}</h1>
+    <p><b>Paciente:</b> ${p.nombre} | <b>Edad:</b> ${p.edad} años</p>
+    <p><b>Profesional:</b> ${prof.nombre || '-'} | <b>Matrícula:</b> ${prof.matricula || '-'}</p>
+    <p><b>Fecha:</b> ${new Date().toLocaleDateString()}</p>
+    <p><b>Anamnesis:</b> ${p.anamnesis || '-'}</p>
+    <p><b>Medicación:</b> ${p.medicacionTexto || '-'}</p>
+  </div>`;
+  (p.patologias || []).forEach(pat => {
+    const hist = (p.historial && p.historial[pat]) || [];
+    html += `<h2 style="margin-top:20px;">${DB_EXTENDED[pat] ? DB_EXTENDED[pat].nombre : pat}</h2>`;
+    if (DB_EXTENDED[pat]) {
+      html += `<p><b>Test:</b> ${DB_EXTENDED[pat].test || '-'}</p>`;
+      html += `<p><b>Bibliografía:</b> ${DB_EXTENDED[pat].bib || '-'}</p>`;
+    }
+    if (hist.length) {
+      html += `<table><tr><th>Sesión</th><th>Fecha</th><th>EVA Reposo</th><th>EVA Activo</th><th>EVA Pasivo</th><th>Zonas</th><th>Notas</th></tr>`;
+      hist.forEach(h => html += `<tr><td>${h.sesion}</td><td>${new Date(h.fecha).toLocaleDateString()}</td><td>${h.eva_reposo}/10</td><td>${h.eva_activo}/10</td><td>${h.eva_pasivo}/10</td><td>${(h.zonasDolor||[]).join(', ') || '-'}</td><td>${h.notas || '-'}</td></tr>`);
+      html += `</table>`;
+    }
+  });
+  document.getElementById('print-area').innerHTML = html;
+  window.print();
 }
 
+// ============ SYNC Y UTILS ============
 function checkPendingSync() {
   window.addEventListener('online', () => {
     const el = document.getElementById('sync-status');

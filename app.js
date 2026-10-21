@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
       option.value = key; option.textContent = DB[key].nombre; select.appendChild(option);
     }
   }
-  // Setear fecha de hoy por defecto
   const dateInput = document.getElementById('new-patient-date');
   if (dateInput) dateInput.valueAsDate = new Date();
 
@@ -39,12 +38,39 @@ function showView(viewId) {
   window.scrollTo(0, 0);
 }
 
-function login() {
+// --- LOGIN SEGURO CON SHA-256 ---
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function login() {
   const email = document.getElementById('login-email').value.trim();
-  if (!email) return showToast('Ingresa tu email', true);
-  state.user = { email };
-  showView('dashboard-view');
-  fetchData();
+  const password = document.getElementById('login-password').value.trim();
+  
+  if (!email || !password) return showToast('Completa email y contraseña', true);
+  if (password.length < 6) return showToast('La contraseña debe tener al menos 6 caracteres', true);
+
+  const hash = await hashPassword(password);
+  const storedHash = localStorage.getItem('kf_auth_' + email);
+
+  if (storedHash) {
+    // Verificar contraseña
+    if (storedHash !== hash) return showToast('Contraseña incorrecta', true);
+    state.user = { email };
+    showView('dashboard-view');
+    fetchData();
+  } else {
+    // Registrar nuevo usuario
+    localStorage.setItem('kf_auth_' + email, hash);
+    state.user = { email };
+    showView('dashboard-view');
+    fetchData();
+    showToast('Cuenta creada y sesión iniciada', false);
+  }
 }
 
 function createPatient() {
@@ -55,30 +81,15 @@ function createPatient() {
   const weight = document.getElementById('new-patient-weight').value;
   const height = document.getElementById('new-patient-height').value;
   const pathology = document.getElementById('new-patient-pathology').value;
-  
   const flags = [...document.querySelectorAll('.flag:checked')].map(c => c.value);
   const meds = [...document.querySelectorAll('.med:checked')].map(c => c.value);
 
   if (!name || !phone) return showToast('Completa nombre y teléfono', true);
 
-  const newPatient = {
-    id: Date.now().toString(),
-    email_kine: state.user.email,
-    nombre: name,
-    telefono: phone,
-    fecha_ingreso: date,
-    edad: age,
-    peso: weight,
-    altura: height,
-    patologia: pathology,
-    banderas: flags,
-    medicacion: meds
-  };
-
+  const newPatient = { id: Date.now().toString(), email_kine: state.user.email, nombre: name, telefono: phone, fecha_ingreso: date, edad: age, peso: weight, altura: height, patologia: pathology, banderas: flags, medicacion: meds };
   state.patients.push(newPatient);
   fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'savePaciente', paciente: newPatient }) }).catch(() => showToast('Error de conexión.', true));
 
-  // Limpiar form
   document.getElementById('new-patient-name').value = '';
   document.getElementById('new-patient-phone').value = '';
   document.getElementById('new-patient-age').value = '';
@@ -154,7 +165,6 @@ function openSession(patientIndex) {
     patData.agentes.forEach(agentKey => {
       const agent = AGENTES[agentKey]; if (!agent) return;
       
-      // Lógica de contraindicación con banderas y medicación
       let isContra = false;
       let motivo = '';
       if (agent.contraindica && state.currentPatient.banderas) {
@@ -187,12 +197,19 @@ function renderLists() {
     `).join('');
 }
 
+// --- MODAL DE VIDEO (BUSCADOR OFICIAL DE YOUTUBE) ---
 function verVideo(nombre) {
   const modal = document.getElementById('video-modal');
   document.getElementById('modal-title').textContent = nombre;
+  
+  // Usamos las URLs oficiales de búsqueda que funcionan en todos los dispositivos
   const query = encodeURIComponent('ejercicio kinesiologia ' + nombre);
-  const url = `https://www.youtube.com/embed?listType=search&list=${query}`;
-  document.getElementById('video-iframe').src = url;
+  const ytUrl = `https://www.youtube.com/results?search_query=${query}`;
+  const imgUrl = `https://www.google.com/search?q=${query}&tbm=isch`;
+  
+  document.getElementById('modal-yt-link').href = ytUrl;
+  document.getElementById('modal-img-link').href = imgUrl;
+  
   modal.classList.remove('hidden');
 }
 
@@ -201,15 +218,19 @@ function verTest() {
   const testName = patData.test;
   const modal = document.getElementById('video-modal');
   document.getElementById('modal-title').textContent = testName;
+  
   const query = encodeURIComponent('test kinesiologia ' + testName);
-  const url = `https://www.youtube.com/embed?listType=search&list=${query}`;
-  document.getElementById('video-iframe').src = url;
+  const ytUrl = `https://www.youtube.com/results?search_query=${query}`;
+  const imgUrl = `https://www.google.com/search?q=${query}&tbm=isch`;
+  
+  document.getElementById('modal-yt-link').href = ytUrl;
+  document.getElementById('modal-img-link').href = imgUrl;
+  
   modal.classList.remove('hidden');
 }
 
 function closeModal() {
   document.getElementById('video-modal').classList.add('hidden');
-  document.getElementById('video-iframe').src = '';
 }
 
 function pasarACasa(index) { const ej = state.currentSession.consultorio[index]; state.currentSession.consultorio.splice(index, 1); state.currentSession.casa.push(ej); document.querySelectorAll('.chip').forEach(c => { if(c.textContent === ej) c.classList.remove('selected'); }); renderLists(); }

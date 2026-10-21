@@ -39,7 +39,7 @@
 
     <!-- DASHBOARD -->
     <div id="dashboard-view" class="view hidden">
-      <!-- Perfil Profesional (Nuevo) -->
+      <!-- Perfil Profesional -->
       <div class="card glass" style="margin-bottom: 24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
           <h3 style="margin:0;">👤 Perfil Profesional</h3>
@@ -49,6 +49,9 @@
           <div><label>Nombre y Apellido</label><input type="text" id="prof-name" placeholder="Ej: Adrián Lazarte"></div>
           <div><label>Matrícula Profesional</label><input type="text" id="prof-matricula" placeholder="Ej: MP 12345"></div>
         </div>
+        <button onclick="cerrarSesion()" class="btn-secondary" style="margin-top: 12px; color: var(--accent-danger); border-color: var(--accent-danger); width: 100%;">
+            Cerrar Sesión
+        </button>
       </div>
 
       <!-- Agenda de Hoy -->
@@ -103,8 +106,8 @@
         <label>Fármacos (Principio Activo)</label>
         <input type="text" id="new-patient-meds" placeholder="Ej: Ibuprofeno, Prednisona...">
         
-        <h3 style="margin-top:24px;">Zona Corporal (Sugerencia)</h3>
-        <label>Zona Dolorosa</label>
+        <h3 style="margin-top:24px;">Diagnóstico</h3>
+        <label>Zona Corporal (Sugerencia)</label>
         <select id="new-patient-zona" onchange="filtrarPatologiasPorZona()">
           <option value="">— Elegir zona —</option>
           <option value="lumbar">Lumbar</option>
@@ -116,7 +119,7 @@
           <option value="rodilla">Rodilla</option>
           <option value="tobillo">Tobillo/Pie</option>
         </select>
-        <label>Diagnóstico (Patología)</label>
+        <label>Patología</label>
         <select id="new-patient-pathology"><option value="">— Elegir patología —</option></select>
         
         <h3 style="margin-top:24px;">Planificación</h3>
@@ -136,13 +139,13 @@
           <label class="check-item"><input type="checkbox" value="yellow_catastrofismo" class="yellow-flag"> Catastrofismo</label>
         </fieldset>
 
-        <fieldset class="flags-fieldset blue-border" style="border-left: 4px solid #2a7ab0 !important;">
+        <fieldset class="flags-fieldset blue-border">
           <legend>🔵 Banderas Azules (Percepción Laboral)</legend>
           <label class="check-item"><input type="checkbox" value="blue_trabajo_empeora" class="blue-flag"> Percibe que el trabajo empeora su dolor</label>
           <label class="check-item"><input type="checkbox" value="blue_soporte" class="blue-flag"> Baja percepción de apoyo laboral</label>
         </fieldset>
 
-        <fieldset class="flags-fieldset black-border" style="border-left: 4px solid #1e293b !important;">
+        <fieldset class="flags-fieldset black-border">
           <legend>⚫ Banderas Negras (Contexto y Sistema)</legend>
           <label class="check-item"><input type="checkbox" value="black_litigio" class="black-flag"> Litigio / compensación laboral</label>
           <label class="check-item"><input type="checkbox" value="black_licencia" class="black-flag"> Licencia prolongada / beneficio ligado al reposo</label>
@@ -273,7 +276,7 @@
     </div>
   </main>
 
-  <!-- MODAL DE VIDEO EMBEBIDO -->
+  <!-- MODAL DE VIDEO EMBEBIDO (Flotante) -->
   <div id="media-modal" class="modal hidden">
     <div class="modal-content glass">
       <span class="modal-close" onclick="closeModal()">×</span>

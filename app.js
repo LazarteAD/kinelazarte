@@ -1,11 +1,30 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzWtIvnF0FNFZPsmV3l7daGp_vfYZPAUl87V_nPg55hy-rEWHqKQuOsU-QKIM2dQzW9/exec"; // ⚠️ PEGÁ TU URL /exec
+// ============================================================
+// KINEFLOW CLINICAL - Lógica Principal (UX/UI Profesional)
+// ============================================================
+
+// ⚠️ PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ (termina en /exec)
+const API_URL = "https://script.google.com/macros/s/AKfycbzWtIvnF0FNFZPsmV3l7daGp_vfYZPAUl87V_nPg55hy-rEWHqKQuOsU-QKIM2dQzW9/exec"; 
 
 let chartInstance = null;
 let calendar = null;
 
 let state = {
-  user: null, patients: [], currentPatient: null, turnos: [],
-  currentSession: { n: 1, patologia: "", consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "", zonasDolor: [] }
+  user: null, 
+  patients: [], 
+  currentPatient: null, 
+  turnos: [],
+  currentSession: { 
+    n: 1, 
+    patologia: "", 
+    sessionTime: 50,
+    consultorio: [], 
+    casa: [], 
+    agentes: [], 
+    eva_reposo: 0, 
+    eva_movimiento: 0, 
+    notas: "", 
+    zonasDolor: [] 
+  }
 };
 
 const TIEMPOS_AGENTES = { calor: 15, frio: 10, tens: 20, magneto: 20, us: 8, manual: 15 };
@@ -43,13 +62,19 @@ async function login() {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
   if (!email || !password) return showToast('Completa email y contraseña', true);
+  
   const hash = await hashPassword(password);
   const storedHash = localStorage.getItem('kf_auth_' + email);
+  
   if (storedHash && storedHash !== hash) return showToast('Contraseña incorrecta', true);
   if (!storedHash) localStorage.setItem('kf_auth_' + email, hash);
+  
   state.user = { email };
   const localP = localStorage.getItem('kf_patients_' + email);
   if (localP) state.patients = JSON.parse(localP);
+  const localT = localStorage.getItem('kf_turnos_' + email);
+  if (localT) state.turnos = JSON.parse(localT);
+  
   showView('dashboard-view');
   renderPatientList();
   syncPendingData();
@@ -78,9 +103,13 @@ function createPatient() {
   const activity = document.getElementById('new-patient-activity').value;
   const anamnesis = document.getElementById('new-patient-anamnesis').value.trim();
   const meds = document.getElementById('new-patient-meds').value.trim();
+  const turnoDateTime = document.getElementById('new-patient-turno').value;
+  
   const redFlags = [...document.querySelectorAll('.red-flag:checked')].map(c => c.value);
   const yellowFlags = [...document.querySelectorAll('.yellow-flag:checked')].map(c => c.value);
+
   if (!name || !phone) return showToast('Completa nombre y teléfono', true);
+  
   const numero = generarNumeroPaciente();
   const newPatient = {
     numero, nombre: name, telefono: phone, edad: age, peso: weight,
@@ -88,13 +117,28 @@ function createPatient() {
     banderasRojas: redFlags, banderasAmarillas: yellowFlags,
     patologias: [], sesionesCompletadas: {}, historial: {}
   };
+  
   state.patients.push(newPatient);
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
+  
+  if (turnoDateTime) {
+    const turno = {
+      id: 't_' + Date.now().toString(),
+      title: name + ' - Nueva Consulta',
+      start: turnoDateTime,
+      end: new Date(new Date(turnoDateTime).getTime() + 60*60*1000).toISOString()
+    };
+    state.turnos.push(turno);
+    localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
+  }
+
   document.getElementById('new-patient-name').value = '';
   document.getElementById('new-patient-phone').value = '';
   document.getElementById('new-patient-anamnesis').value = '';
   document.getElementById('new-patient-meds').value = '';
+  document.getElementById('new-patient-turno').value = '';
   document.querySelectorAll('.red-flag, .yellow-flag').forEach(c => c.checked = false);
+  
   showView('dashboard-view');
   renderPatientList();
   showToast(`✅ ${numero} creado`);
@@ -109,7 +153,7 @@ function renderPatientList() {
   }
   list.innerHTML = state.patients.map((p, index) => {
     const numPats = (p.patologias || []).length;
-    return `<div class="patient-card" onclick="abrirPaciente(${index})">
+    return `<div class="patient-card card glass" onclick="abrirPaciente(${index})">
       <div class="patient-avatar">${p.nombre.charAt(0).toUpperCase()}</div>
       <div class="patient-info" style="flex:1;">
         <h3>${p.numero} - ${p.nombre}</h3>
@@ -135,21 +179,21 @@ function mostrarPatologiasPaciente() {
       <div class="anamnesis-card card glass">
         <h3>📋 Anamnesis</h3>
         <p style="font-style:italic;">"${p.anamnesis || 'Sin anamnesis'}"</p>
-        ${p.medicacionTexto ? `<div id="meds-resumen"><b>💊 ${p.medicacionTexto}</b></div>` : ''}
+        ${p.medicacionTexto ? `<div class="meds-box"><b>💊 ${p.medicacionTexto}</b></div>` : ''}
       </div>
       <h3 style="margin-top:20px;">Patologías</h3>`;
   if (p.patologias.length === 0) html += `<p class="sub">No hay patologías.</p>`;
   else html += p.patologias.map(pat => {
     const completadas = (p.sesionesCompletadas && p.sesionesCompletadas[pat]) || 0;
-    return `<div style="padding:12px; background:var(--bg); border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+    return `<div style="padding:12px; background:rgba(255,255,255,0.4); border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
       <div onclick="iniciarSesion('${pat}')" style="flex:1; cursor:pointer;">
         <b>${DB[pat] ? DB[pat].nombre : pat}</b>
         <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 0;">Sesión ${completadas}/10</p>
       </div>
-      <button onclick="event.stopPropagation(); eliminarPatologia('${pat}')" class="btn-delete" style="font-size:0.7rem;">🗑️</button>
+      <button onclick="event.stopPropagation(); eliminarPatologia('${pat}')" class="btn-delete" style="font-size:0.8rem;">🗑️</button>
     </div>`;
   }).join('');
-  html += `<button onclick="agregarPatologia()" class="btn-primary mt-2 ripple">+ Agregar otra patología</button></div></div>`;
+  html += `<button onclick="agregarPatologia()" class="btn-primary mt-2">+ Agregar otra patología</button></div></div>`;
   const temp = document.createElement('div');
   temp.innerHTML = html;
   document.body.appendChild(temp);
@@ -160,7 +204,7 @@ function agregarPatologia() {
   const p = state.currentPatient;
   const patologiasDisponibles = Object.keys(DB).filter(k => !(p.patologias || []).includes(k));
   let opciones = patologiasDisponibles.map(k => `<option value="${k}">${DB[k].nombre}</option>`).join('');
-  let html = `<div class="view"><div class="header-actions"><h2>Agregar Patología</h2><button onclick="showView('dashboard-view'); renderPatientList();" class="btn-text">Cancelar</button></div><div class="card glass"><label>Patología</label><select id="nueva-patologia">${opciones}</select><button onclick="confirmarPatologia()" class="btn-primary mt-2 ripple">Agregar</button></div></div>`;
+  let html = `<div class="view"><div class="header-actions"><h2>Agregar Patología</h2><button onclick="showView('dashboard-view'); renderPatientList();" class="btn-text">Cancelar</button></div><div class="card glass"><label>Patología</label><select id="nueva-patologia">${opciones}</select><button onclick="confirmarPatologia()" class="btn-primary mt-2">Agregar</button></div></div>`;
   const temp = document.createElement('div');
   temp.innerHTML = html;
   document.body.appendChild(temp);
@@ -172,11 +216,13 @@ function confirmarPatologia() {
   if (!p.patologias) p.patologias = [];
   if (!p.sesionesCompletadas) p.sesionesCompletadas = {};
   if (!p.historial) p.historial = {};
+  
   if (!p.patologias.includes(pat)) {
     p.patologias.push(pat);
     p.sesionesCompletadas[pat] = 0;
     p.historial[pat] = [];
   }
+  
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
   document.body.lastChild.remove();
   showView('dashboard-view');
@@ -202,7 +248,9 @@ function toggleZone(zoneId) {
   if (!el) return;
   el.classList.toggle('active');
   haptic(15);
+  
   if (!state.currentSession.zonasDolor) state.currentSession.zonasDolor = [];
+  
   if (el.classList.contains('active')) {
     if (!state.currentSession.zonasDolor.includes(zoneId)) state.currentSession.zonasDolor.push(zoneId);
   } else {
@@ -220,7 +268,7 @@ function actualizarResumenZonas() {
     el.style.color = 'var(--text-muted)';
   } else {
     el.textContent = `✅ ${count} zona(s) marcada(s)`;
-    el.style.color = 'var(--danger)';
+    el.style.color = 'var(--accent-danger)';
   }
 }
 
@@ -229,17 +277,38 @@ function iniciarSesion(pat) {
   const p = state.currentPatient;
   const patData = DB[pat];
   const completadas = (p.sesionesCompletadas && p.sesionesCompletadas[pat]) || 0;
-  state.currentSession = { n: completadas + 1, patologia: pat, consultorio: [], casa: [], agentes: [], eva_reposo: 0, eva_movimiento: 0, notas: "", zonasDolor: [] };
+  
+  state.currentSession = { 
+    n: completadas + 1, 
+    patologia: pat, 
+    sessionTime: 50,
+    consultorio: [], 
+    casa: [], 
+    agentes: [], 
+    eva_reposo: 0, 
+    eva_movimiento: 0, 
+    notas: "", 
+    zonasDolor: [] 
+  };
+  
   document.body.querySelectorAll('.view').forEach(v => {
     if (v !== document.getElementById('dashboard-view') && v !== document.getElementById('session-view')) v.remove();
   });
+  
+  // 1. Pestaña Paciente
   document.getElementById('session-patient-name').textContent = `${p.numero} - ${p.nombre}`;
-  document.getElementById('patologia-nombre').textContent = patData.nombre;
-  document.getElementById('patologia-test').innerHTML = `Test: <b>${patData.test}</b><br><small>📚 ${patData.bib}</small>`;
+  document.getElementById('anamnesis-resumen').textContent = `"${p.anamnesis || 'Sin anamnesis'}"`;
+  document.getElementById('meds-resumen').innerHTML = p.medicacionTexto ? `<b>💊 ${p.medicacionTexto}</b>` : 'Sin medicación registrada';
+  
+  document.getElementById('test-nombre').textContent = patData.test;
+  document.getElementById('test-descripcion').textContent = patData.bib;
+  document.getElementById('test-visual').innerHTML = `<span>▶ Hacé clic en Ver Demostración</span>`;
+  
   let flagsHTML = '';
   if (p.banderasRojas && p.banderasRojas.length > 0) flagsHTML += `<div class="alert red">🚩 Banderas Rojas: ${p.banderasRojas.join(', ')}</div>`;
   if (p.banderasAmarillas && p.banderasAmarillas.length > 0) flagsHTML += `<div class="alert yellow">🟡 Banderas Amarillas: ${p.banderasAmarillas.join(', ')}</div>`;
   document.getElementById('flags-alert').innerHTML = flagsHTML;
+  
   document.querySelectorAll('.zone').forEach(z => z.classList.remove('active'));
   const zonaDefecto = ZONAS_PATOLOGIA[pat];
   if (zonaDefecto) {
@@ -247,30 +316,28 @@ function iniciarSesion(pat) {
     if (el) { el.classList.add('active'); state.currentSession.zonasDolor = [zonaDefecto]; }
   }
   actualizarResumenZonas();
-  document.getElementById('lista-sesiones').innerHTML = SESIONES_PLAN.map(s => {
-    let estado = s.n < completadas ? '✅' : (s.n === completadas + 1 ? '▶️' : '🔒');
-    return `<div class="sesion-item ${s.n < completadas ? 'completada' : (s.n > completadas + 1 ? 'bloqueada' : '')}"><span>${estado} <b>${s.n}:</b> ${s.fase}</span></div>`;
-  }).join('');
+  
+  // 2. Pestaña Terapia
   const ejContainer = document.getElementById('suggested-exercises');
   ejContainer.innerHTML = '';
   if (patData.ejercicios) {
     let todos = [];
     for (const tipo in patData.ejercicios) todos = todos.concat(patData.ejercicios[tipo]);
     todos.forEach(ejercicio => {
-      const chip = document.createElement('div');
-      chip.className = 'chip';
-      chip.innerHTML = `${ejercicio.nombre} <small>(${ejercicio.series}x${ejercicio.reps})</small>`;
-      chip.onclick = () => {
-        if (!state.currentSession.consultorio.find(e => e.nombre === ejercicio.nombre)) {
-          state.currentSession.consultorio.push(ejercicio);
-          chip.classList.add('selected');
-          haptic(15);
-          renderLists();
-        }
-      };
-      ejContainer.appendChild(chip);
+      const div = document.createElement('label');
+      div.className = 'exercise-item';
+      div.innerHTML = `
+        <input type="checkbox" value="${ejercicio.nombre}" onchange="toggleExercise('${ejercicio.nombre}', this.checked)">
+        <div class="exercise-info">
+          <b>${ejercicio.nombre}</b>
+          <small>${ejercicio.series} series × ${ejercicio.reps} reps · ${ejercicio.tiempo}</small>
+        </div>
+        <div class="exercise-visual" onclick="event.preventDefault(); verMedia('${ejercicio.nombre}')">▶</div>
+      `;
+      ejContainer.appendChild(div);
     });
   }
+  
   const agentContainer = document.getElementById('agents-list');
   agentContainer.innerHTML = '';
   if (patData.agentes) {
@@ -278,77 +345,69 @@ function iniciarSesion(pat) {
       const agent = AGENTES[agentKey];
       if (!agent) return;
       const isContra = agent.contra && p.banderasRojas && agent.contra.some(c => p.banderasRojas.includes(c));
-      const div = document.createElement('div');
-      div.className = `agent-item ${isContra ? 'contra' : ''}`;
-      div.innerHTML = `<div><h4>${agent.nombre}</h4><small>${agent.dosis}</small>${isContra ? `<span class="agent-alert">⚠️ Contraindicado</span>` : ''}</div><input type="checkbox" ${isContra ? 'disabled' : ''} onchange="toggleAgent('${agent.nombre}', this.checked, '${agentKey}')">`;
+      const div = document.createElement('label');
+      div.className = 'agent-checkbox';
+      div.innerHTML = `
+        <input type="checkbox" ${isContra ? 'disabled' : ''} onchange="toggleAgent('${agent.nombre}', this.checked, '${agentKey}')">
+        <div>
+          <b>${agent.nombre}</b><br>
+          <small style="color:var(--text-muted);">${agent.dosis}</small>
+          ${isContra ? `<br><span style="color:var(--accent-danger); font-size:0.75rem; font-weight:bold;">⚠️ Contraindicado</span>` : ''}
+        </div>
+      `;
       agentContainer.appendChild(div);
     });
   }
-  document.getElementById('eva-reposo').value = 0;
-  document.getElementById('eva-reposo-val').textContent = '0';
-  document.getElementById('eva-movimiento').value = 0;
-  document.getElementById('eva-movimiento-val').textContent = '0';
+  
+  // 3. Pestaña Evolución
+  document.getElementById('lista-sesiones').innerHTML = SESIONES_PLAN.map(s => {
+    let estado = s.n < completadas ? '✅' : (s.n === completadas + 1 ? '▶️' : '🔒');
+    let clase = s.n < completadas ? 'completed' : (s.n > completadas + 1 ? 'locked' : 'current');
+    return `<div class="session-plan-item ${clase}">
+      <span>${estado} <b>Sesión ${s.n}:</b> ${s.fase}</span>
+    </div>`;
+  }).join('');
+  
+  // 4. Pestaña Cierre
   document.getElementById('session-notes').value = '';
-  document.getElementById('selected-consultorio').innerHTML = '';
-  document.getElementById('selected-casa').innerHTML = '';
-  updateProgressBar();
+  document.getElementById('rutina-casa-preview').innerHTML = '';
+  
+  // 5. Inicializar Tiempo y Mostrar
+  document.querySelectorAll('.timer-chip').forEach(c => c.classList.remove('active'));
+  document.querySelector('.timer-chip[data-time="50"]').classList.add('active');
+  calcularTiempoTotal();
+  
   showView('session-view');
-  switchTab('mapa', document.querySelectorAll('.tab-btn')[0]);
-  renderRPGPostural(pat);
+  switchTab('paciente', document.querySelectorAll('.tab-btn')[0]);
+  
+  // 6. Renderizar Evidencia y Bibliografía
   renderEvidencia(pat);
   renderBibliografia();
 }
 
-function updateProgressBar() {
-  const bar = document.getElementById('session-progress');
-  if (!bar) return;
-  const n = state.currentSession.n || 1;
-  bar.style.width = (n * 10) + '%';
-}
-
-function renderLists() {
-  document.getElementById('selected-consultorio').innerHTML = state.currentSession.consultorio.map((ej, i) => `
-    <li><div style="flex:1;">
-      <b>${ej.nombre}</b><br>
-      <small style="color:var(--primary); font-weight:bold;">${ej.series} series × ${ej.reps} reps · ${ej.tiempo}</small>
-    </div>
-    <div class="action-buttons">
-      <button class="btn-play" onclick="verMedia('${ej.nombre}')">▶</button>
-      <button class="btn-move" onclick="pasarACasa(${i})">→</button>
-      <button class="btn-remove" onclick="removeItem('consultorio', ${i})">×</button>
-    </div></li>
-  `).join('');
-  document.getElementById('selected-casa').innerHTML = state.currentSession.casa.map((ej, i) => `
-    <li style="border-left-color:var(--whatsapp);"><div style="flex:1;">
-      <b>${ej.nombre}</b><br>
-      <small style="color:var(--whatsapp); font-weight:bold;">${ej.series} series × ${ej.reps} reps</small>
-    </div>
-    <div class="action-buttons">
-      <button class="btn-play" onclick="verMedia('${ej.nombre}')">▶</button>
-      <button class="btn-remove" onclick="removeItem('casa', ${i})">×</button>
-    </div></li>
-  `).join('');
+// ============ LÓGICA DE TERAPIA (Tiempo y Selección) ============
+function selectSessionTime(minutos, element) {
+  state.currentSession.sessionTime = minutos;
+  document.querySelectorAll('.timer-chip').forEach(c => c.classList.remove('active'));
+  element.classList.add('active');
   calcularTiempoTotal();
 }
 
-function calcularTiempoTotal() {
-  let minEjercicios = 0;
-  state.currentSession.consultorio.forEach(e => {
-    const series = e.series || 3, reps = e.reps || 10, descanso = parseInt(e.descanso) || 45;
-    minEjercicios += (series * (reps * 3 + descanso)) / 60;
-  });
-  let minAgentes = 0;
-  state.currentSession.agentes.forEach(a => minAgentes += TIEMPOS_AGENTES[a] || 15);
-  const total = Math.round(minEjercicios + minAgentes);
-  if (document.getElementById('time-ejercicios')) {
-    document.getElementById('time-ejercicios').textContent = Math.round(minEjercicios) + ' min';
-    document.getElementById('time-agentes').textContent = minAgentes + ' min';
-    document.getElementById('time-total').textContent = total + ' min';
-    const alert = document.getElementById('time-alert');
-    if (total < 40) { alert.textContent = '⚠️ Menos de 40 min'; alert.style.color = 'var(--warning)'; }
-    else if (total > 60) { alert.textContent = '⚠️ Más de 60 min'; alert.style.color = 'var(--danger)'; }
-    else { alert.textContent = '✅ Dentro del rango (40-60 min)'; alert.style.color = 'var(--success)'; }
+function toggleExercise(nombre, checked) {
+  const patData = DB[state.currentSession.patologia];
+  let todos = [];
+  for (const tipo in patData.ejercicios) todos = todos.concat(patData.ejercicios[tipo]);
+  const ejercicio = todos.find(e => e.nombre === nombre);
+  
+  if (checked && ejercicio) {
+    if (!state.currentSession.consultorio.find(e => e.nombre === nombre)) {
+      state.currentSession.consultorio.push(ejercicio);
+    }
+  } else {
+    state.currentSession.consultorio = state.currentSession.consultorio.filter(e => e.nombre !== nombre);
   }
+  haptic(10);
+  calcularTiempoTotal();
 }
 
 function toggleAgent(nombre, checked, key) {
@@ -358,49 +417,89 @@ function toggleAgent(nombre, checked, key) {
   calcularTiempoTotal();
 }
 
-function pasarACasa(i) {
-  const ej = state.currentSession.consultorio.splice(i, 1)[0];
-  state.currentSession.casa.push(ej);
-  haptic(15);
-  renderLists();
+function calcularTiempoTotal() {
+  let minEjercicios = 0;
+  state.currentSession.consultorio.forEach(e => {
+    const series = e.series || 3, reps = e.reps || 10, descanso = parseInt(e.descanso) || 45;
+    minEjercicios += (series * (reps * 3 + descanso)) / 60;
+  });
+  
+  let minAgentes = 0;
+  state.currentSession.agentes.forEach(a => minAgentes += TIEMPOS_AGENTES[a] || 15);
+  
+  const total = Math.round(minEjercicios + minAgentes);
+  const target = state.currentSession.sessionTime;
+  
+  const summaryEl = document.getElementById('time-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `Tiempo planificado: <b>${total} min</b> / Objetivo: ${target} min`;
+    if (total > target) {
+      summaryEl.style.color = 'var(--accent-danger)';
+      summaryEl.innerHTML += ` <br><small>⚠️ Te pasaste del tiempo seleccionado.</small>`;
+    } else if (total < target - 10) {
+      summaryEl.style.color = 'var(--accent-warning)';
+      summaryEl.innerHTML += ` <br><small>⚠️ Podés agregar más ejercicios.</small>`;
+    } else {
+      summaryEl.style.color = 'var(--accent-success)';
+    }
+  }
 }
 
-function removeItem(lista, i) {
-  state.currentSession[lista].splice(i, 1);
-  renderLists();
-}
-
-function updateEva(type, val) {
-  document.getElementById(`eva-${type}-val`).textContent = val;
-  state.currentSession[`eva_${type}`] = parseInt(val);
-  haptic(8);
-}
-
+// ============ MODAL Y BÚSQUEDA DE MEDIA ============
 function verMedia(nombre) {
   document.getElementById('modal-title').textContent = nombre;
   document.getElementById('modal-yt-link').href = `https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + nombre)}`;
   document.getElementById('modal-img-link').href = `https://www.google.com/search?q=${encodeURIComponent('ejercicio kinesiologia ' + nombre + ' posicion inicial y final')}&tbm=isch`;
   document.getElementById('media-modal').classList.remove('hidden');
 }
-function verTest() { verMedia(DB[state.currentSession.patologia].test); }
-function closeModal() { document.getElementById('media-modal').classList.add('hidden'); }
 
-function switchTab(tabId, btn) {
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
-  document.getElementById('tab-' + tabId).classList.remove('hidden');
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  haptic(10);
-  if (tabId === 'ejercicios') calcularTiempoTotal();
-  if (tabId === 'evolucion') renderGrafico();
+function verTest() {
+  const testName = DB[state.currentSession.patologia].test;
+  verMedia(testName);
 }
 
+function closeModal() {
+  document.getElementById('media-modal').classList.add('hidden');
+}
+
+// ============ EVIDENCIA Y BIBLIOGRAFÍA ============
+function renderEvidencia(pat) {
+  const panel = document.getElementById('evidencia-panel');
+  if (!panel) return;
+  const ev = EVIDENCIA[pat];
+  if (!ev) {
+    panel.innerHTML = '<p class="sub">No hay evidencia específica cargada para esta patología.</p>';
+    return;
+  }
+  panel.innerHTML = `<span class="nivel-badge" style="background:var(--accent-success); color:white; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:bold;">Evidencia ${ev.nivel}</span>
+    <p style="font-weight:600; margin:10px 0; font-size:0.85rem;">${ev.dosis}</p>
+    <h4 style="font-size:0.85rem; color:var(--text-main); margin:10px 0 5px;">Referencias:</h4>
+    ${ev.refs.map(r => `<div class="ref-item"><b>${r.cita}</b>${r.doi ? `<br><small style="color:var(--accent-secondary);">DOI: ${r.doi}</small>` : ''}</div>`).join('')}`;
+}
+
+function renderBibliografia() {
+  const el = document.getElementById('bibliografia-list');
+  if (!el) return;
+  el.innerHTML = Object.values(BIBLIOGRAFIA).map(b => `
+    <div style="padding:8px 0; border-bottom:1px solid var(--border-light);">
+      <b>${b.autor}.</b> <i>${b.titulo}</i>. ${b.editorial}, ${b.edicion}, ${b.anio}.
+      ${b.isbn !== '—' ? `<br><small style="color:var(--text-muted);">ISBN: ${b.isbn}</small>` : ''}
+    </div>
+  `).join('');
+}
+
+// ============ EVOLUCIÓN Y GRÁFICO ============
 function renderGrafico() {
-  const ctx = document.getElementById('chart-evolucion').getContext('2d');
+  const canvas = document.getElementById('chart-evolucion');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
   if (chartInstance) chartInstance.destroy();
+  
   const pat = state.currentSession.patologia;
   const historial = (state.currentPatient.historial && state.currentPatient.historial[pat]) || [];
+  
   if (historial.length === 0) return;
+  
   chartInstance = new Chart(ctx, {
     type: 'line',
     data: {
@@ -410,76 +509,38 @@ function renderGrafico() {
         { label: 'Movimiento', data: historial.map(h => h.eva_movimiento), borderColor: '#e11d48', backgroundColor: 'rgba(225,29,72,0.1)', tension: 0.4, fill: true, pointRadius: 6 }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 10 } } }
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      scales: { y: { beginAtZero: true, max: 10 } },
+      plugins: { legend: { position: 'bottom' } }
+    }
   });
 }
 
-function saveSession() {
-  const pat = state.currentSession.patologia;
-  const notas = document.getElementById('session-notes').value;
-  const p = state.currentPatient;
-  if (!p.historial[pat]) p.historial[pat] = [];
-  p.historial[pat].push({
-    sesion: state.currentSession.n,
-    fecha: new Date().toISOString(),
-    eva_reposo: state.currentSession.eva_reposo,
-    eva_movimiento: state.currentSession.eva_movimiento,
-    notas,
-    zonasDolor: state.currentSession.zonasDolor
-  });
-  let avanzar = true;
-  if (state.currentSession.eva_reposo > 3 || state.currentSession.eva_movimiento > 3) {
-    avanzar = confirm('El dolor es mayor a 3/10.\n\n¿Querés avanzar a la siguiente sesión de todos modos?');
-  }
-  if (avanzar) {
-    if (p.sesionesCompletadas[pat] < state.currentSession.n) p.sesionesCompletadas[pat] = state.currentSession.n;
-    showToast('✅ Sesión guardada. Siguiente desbloqueada.');
-    haptic([30, 50, 30, 50, 30]);
-  } else {
-    showToast('✅ Sesión guardada. Paciente se mantiene.');
-    haptic(20);
-  }
-  localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
-  queueForSync('saveSesion', { ...state.currentSession, email_kine: state.user.email, paciente_numero: p.numero });
-  setTimeout(() => { showView('dashboard-view'); renderPatientList(); }, 400);
-}
-
-function editarAnamnesis() {
-  const p = state.currentPatient;
-  const nueva = prompt('Editar Anamnesis:', p.anamnesis);
-  if (nueva !== null && nueva.trim() !== '') {
-    p.anamnesis = nueva.trim();
-    document.getElementById('anamnesis-resumen').textContent = `"${p.anamnesis}"`;
-    localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
-    showToast('Anamnesis actualizada');
-  }
-}
-
-function eliminarPaciente(index) {
-  if (confirm(`¿Eliminar a ${state.patients[index].nombre}?`)) {
-    state.patients.splice(index, 1);
-    localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
-    renderPatientList();
-    showToast('Paciente eliminado');
-    haptic(30);
-  }
-}
-
-function autocompletarCasa() {
+// ============ CIERRE Y RUTINA PARA CASA ============
+function generarRutinaCasa() {
   const pat = state.currentSession.patologia;
   const patData = DB[pat];
-  if (patData && patData.ejercicios && patData.ejercicios.casa) {
-    patData.ejercicios.casa.forEach(ej => {
-      if (!state.currentSession.casa.find(e => e.nombre === ej.nombre)) state.currentSession.casa.push(ej);
-    });
-    renderLists();
-    showToast('✨ Rutina de casa autocompletada');
-    haptic([20, 30, 20]);
+  const preview = document.getElementById('rutina-casa-preview');
+  
+  if (!patData || !patData.ejercicios || !patData.ejercicios.casa) {
+    preview.innerHTML = '<p class="sub" style="color:var(--accent-danger);">No hay ejercicios de casa predefinidos para esta patología.</p>';
+    return;
   }
+  
+  const rutina = patData.ejercicios.casa;
+  state.currentSession.casa = rutina; 
+  
+  preview.innerHTML = `<h4 style="font-size:0.9rem; margin-bottom:8px;">Rutina generada:</h4>` +
+    rutina.map((ej, i) => `<p style="font-size:0.85rem; margin-bottom:6px;"><b>${i+1}. ${ej.nombre}</b> - ${ej.series} series x ${ej.reps} reps</p>`).join('');
+    
+  showToast('✨ Rutina generada');
+  haptic([20, 30, 20]);
 }
 
 function imprimirPlanCasa() {
-  if (state.currentSession.casa.length === 0) return showToast('No hay ejercicios en casa.', true);
+  if (state.currentSession.casa.length === 0) return showToast('Primero generá la rutina.', true);
   let html = `<div class="print-header-home"><h1>Plan de Ejercicios para Casa</h1><p><b>Paciente:</b> ${state.currentPatient.numero} - ${state.currentPatient.nombre}</p><p><b>Fecha:</b> ${new Date().toLocaleDateString()}</p></div><ol class="print-list-home">`;
   state.currentSession.casa.forEach(ej => { html += `<li><b>${ej.nombre}</b> - ${ej.series} series × ${ej.reps} reps</li>`; });
   html += `</ol>`;
@@ -489,24 +550,8 @@ function imprimirPlanCasa() {
   document.body.classList.remove('printing-home');
 }
 
-function exportarHistoria() {
-  const p = state.currentPatient;
-  let html = `<div class="print-header"><h1>Historia Clínica - ${p.numero}</h1><p><b>${p.nombre}</b> | ${p.edad} años</p><p><b>Anamnesis:</b> ${p.anamnesis || '-'}</p><p><b>Medicación:</b> ${p.medicacionTexto || '-'}</p></div>`;
-  (p.patologias || []).forEach(pat => {
-    const hist = (p.historial && p.historial[pat]) || [];
-    html += `<h2 style="margin-top:20px;">${DB[pat].nombre}</h2><p><b>Test:</b> ${DB[pat].test}</p><p><b>Bibliografía:</b> ${DB[pat].bib}</p>`;
-    if (hist.length) {
-      html += `<table><tr><th>Sesión</th><th>Fecha</th><th>EVA Reposo</th><th>EVA Movimiento</th><th>Zonas</th><th>Notas</th></tr>`;
-      hist.forEach(h => html += `<tr><td>${h.sesion}</td><td>${new Date(h.fecha).toLocaleDateString()}</td><td>${h.eva_reposo}/10</td><td>${h.eva_movimiento}/10</td><td>${(h.zonasDolor||[]).join(', ') || '-'}</td><td>${h.notas || '-'}</td></tr>`);
-      html += `</table>`;
-    }
-  });
-  document.getElementById('print-area').innerHTML = html;
-  window.print();
-}
-
 function sendWhatsApp() {
-  if (state.currentSession.casa.length === 0) return showToast('No hay ejercicios en casa.', true);
+  if (state.currentSession.casa.length === 0) return showToast('Primero generá la rutina.', true);
   let msg = `*Plan de Ejercicios para Casa* 🏠\nHola ${state.currentPatient.nombre}:\n\n`;
   state.currentSession.casa.forEach((ej, i) => {
     msg += `${i+1}. *${ej.nombre}*\n   ${ej.series} series × ${ej.reps} reps\n   Video: https://www.youtube.com/results?search_query=${encodeURIComponent(ej.nombre)}\n\n`;
@@ -515,53 +560,51 @@ function sendWhatsApp() {
   haptic(20);
 }
 
-// ============ RPG POSTURAL (Souchard) ============
-function renderRPGPostural(pat) {
-  const card = document.getElementById('rpg-card');
-  const list = document.getElementById('rpg-posturas-list');
-  if (!card || !list) return;
-  const posturasIndicadas = RPG_INDICACIONES[pat] || [];
-  if (posturasIndicadas.length === 0) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  list.innerHTML = posturasIndicadas.map(key => {
-    const p = RPG_POSTURAS[key];
-    if (!p) return '';
-    return `<div style="padding:12px; background:var(--bg); border-radius:10px; margin-bottom:10px;">
-      <b style="color:var(--primary);">${p.nombre}</b>
-      <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0;">${p.cadena}</p>
-      <p style="font-size:0.85rem; margin:6px 0;"><b>Duración:</b> ${p.duracion}</p>
-      <p style="font-size:0.85rem; margin:8px 0;">${p.objetivo}</p>
-      <details style="font-size:0.82rem;">
-        <summary style="cursor:pointer; color:var(--accent); font-weight:600;">Ver pasos</summary>
-        <ol style="padding-left:20px; margin-top:8px;">${p.pasos.map(paso => `<li style="margin-bottom:4px;">${paso}</li>`).join('')}</ol>
-      </details>
-      <p style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; font-style:italic;">📖 ${p.bib}</p>
-    </div>`;
-  }).join('');
+// ============ GUARDAR SESIÓN ============
+function saveSession() {
+  const pat = state.currentSession.patologia;
+  const notas = document.getElementById('session-notes').value;
+  const p = state.currentPatient;
+  
+  if (!p.historial[pat]) p.historial[pat] = [];
+  p.historial[pat].push({
+    sesion: state.currentSession.n,
+    fecha: new Date().toISOString(),
+    eva_reposo: state.currentSession.eva_reposo,
+    eva_movimiento: state.currentSession.eva_movimiento,
+    notas,
+    zonasDolor: state.currentSession.zonasDolor
+  });
+  
+  let avanzar = true;
+  if (state.currentSession.eva_reposo > 3 || state.currentSession.eva_movimiento > 3) {
+    avanzar = confirm('El dolor es mayor a 3/10.\n\n¿Querés avanzar a la siguiente sesión de todos modos?');
+  }
+  
+  if (avanzar) {
+    if (p.sesionesCompletadas[pat] < state.currentSession.n) p.sesionesCompletadas[pat] = state.currentSession.n;
+    showToast('✅ Sesión guardada. Siguiente desbloqueada.');
+    haptic([30, 50, 30, 50, 30]);
+  } else {
+    showToast('✅ Sesión guardada. Paciente se mantiene.');
+    haptic(20);
+  }
+  
+  localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
+  queueForSync('saveSesion', { ...state.currentSession, email_kine: state.user.email, paciente_numero: p.numero });
+  
+  setTimeout(() => { showView('dashboard-view'); renderPatientList(); }, 400);
 }
 
-// ============ EVIDENCIA Y BIBLIOGRAFÍA ============
-function renderEvidencia(pat) {
-  const panel = document.getElementById('evidencia-panel');
-  if (!panel) return;
-  const ev = EVIDENCIA[pat];
-  if (!ev) { panel.innerHTML = '<p class="sub">No hay evidencia específica cargada para esta patología.</p>'; return; }
-  panel.innerHTML = `<span class="nivel-badge" style="background:var(--success);">Evidencia ${ev.nivel}</span>
-    <p style="font-weight:600; margin-bottom:10px;">${ev.dosis}</p>
-    <h4 style="font-size:0.8rem; color:var(--text-muted); margin:10px 0 5px;">Referencias:</h4>
-    ${ev.refs.map(r => `<div class="ref-item"><b>${r.cita}</b>${r.doi ? `<br><small style="color:var(--accent);">DOI: ${r.doi}</small>` : ''}</div>`).join('')}`;
-}
-
-function renderBibliografia() {
-  const el = document.getElementById('bibliografia-list');
-  if (!el) return;
-  el.innerHTML = Object.values(BIBLIOGRAFIA).map(b => `
-    <div style="padding:10px 0; border-bottom:1px solid var(--border);">
-      <b>${b.autor}.</b> <i>${b.titulo}</i>. ${b.editorial}, ${b.edicion}, ${b.anio}.
-      ${b.isbn !== '—' ? `<br><small style="color:var(--text-muted);">ISBN: ${b.isbn}</small>` : ''}
-      ${b.nota ? `<br><small style="color:var(--accent);">${b.nota}</small>` : ''}
-    </div>
-  `).join('');
+// ============ PESTAÑAS ============
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+  document.getElementById('tab-' + tabId).classList.remove('hidden');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  haptic(10);
+  
+  if (tabId === 'evolucion') renderGrafico();
 }
 
 // ============ CALENDARIO ============
@@ -569,6 +612,7 @@ function initCalendar() {
   const calendarEl = document.getElementById('calendar-container');
   if (!calendarEl) return;
   if (calendar) calendar.destroy();
+  
   calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth', locale: 'es',
     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },

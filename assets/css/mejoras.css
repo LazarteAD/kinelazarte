@@ -1,0 +1,53 @@
+/* ============================================================
+   Mejoras UX/UI · KineLazarte
+   Importar DESPUÉS de los estilos originales.
+   ============================================================ */
+
+/* 1. Botones accesibles y con foco visible */
+button, .btn {
+  min-height: 44px;
+  padding: .65rem 1.1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: background .15s, transform .05s;
+}
+button:active, .btn:active { transform: translateY(1px); }
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+/* 2. Mobile-first: inputs con font-size >=16px para evitar zoom iOS */
+@media (max-width: 768px) {
+  input, select, textarea { font-size: 16px; }
+  button, .btn { min-height: 48px; font-size: 1rem; }
+}
+
+/* 3. Tarjetas más limpias */
+.card, .panel, [class*="card"] {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+
+/* 4. Tablas más legibles en mobile */
+@media (max-width: 700px) {
+  table { font-size: .9rem; }
+  table th, table td { padding: .5rem .4rem; }
+}
+
+/* 5. Respeto por prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* 6. Utilidad para imágenes (evita CLS) */
+img { max-width: 100%; height: auto; }
+img[loading="lazy"] { content-visibility: auto; }

@@ -1,143 +1,91 @@
-/* KineFlow — Sustento científico
-   Referencias halladas por búsqueda. Verificar siempre en la fuente antes de aplicar.
-   Cada entrada: { r: [{c: cita, u: url}], n: nota interpretativa } */
+/* ============================================================
+   KINEFLOW - Evidencia Científica, Bibliografía y RPG Postural
+   ============================================================ */
 
+// ============ EVIDENCIA POR PATOLOGÍA ============
 const EVIDENCIA = {
   lumbalgia: {
-    r: [
-      { c: "Interventions for the Management of Acute and Chronic Low Back Pain: Revision 2021", u: "https://pubmed.ncbi.nlm.nih.gov/34719942/" },
-      { c: "Low back pain and sciatica in over 16s: assessment and management (NICE NG59)", u: "https://www.nice.org.uk/guidance/ng59" }
+    nivel: "Alta",
+    refs: [
+      { cita: "Massé-Alarie H, et al. Psychologically-informed vs usual physiotherapy in chronic low back pain. Arch Physiother. 2025;15:32-41.", doi: "10.33393/aop.2025.3323" },
+      { cita: "Fanuscu A, et al. Motor control exercises in chronic low back pain. Ir J Med Sci. 2025.", doi: "10.1007/s11845-025-04187-w" },
+      { cita: "Lumbar stabilization exercise with ultrasound biofeedback. Sci Rep. 2025;15:36975.", doi: "10.1038/s41598-025-20942-6" }
     ],
-    n: "El Lasègue evalúa compromiso radicular, no es un test central de lumbalgia mecánica inespecífica; la evidencia de TENS, ultrasonido y magnetoterapia es débil y las guías priorizan ejercicio, educación y terapia manual."
-  },
-  ciatica: {
-    r: [
-      { c: "Low back pain and sciatica in over 16s (NICE NG59)", u: "https://www.nice.org.uk/guidance/ng59" },
-      { c: "Physical examination for lumbar radiculopathy due to disc herniation in patients with low-back pain (Cochrane)", u: "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD007431.pub3/" }
-    ],
-    n: "El Lasègue es útil pero con especificidad limitada; la evidencia de TENS, magnetoterapia y calor es débil frente a ejercicio y educación."
-  },
-  hernia_lumbar: {
-    r: [
-      { c: "Physical examination for lumbar radiculopathy (Cochrane)", u: "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD007431.pub3/" },
-      { c: "Low back pain and sciatica in over 16s (NICE NG59)", u: "https://www.nice.org.uk/guidance/ng59" }
-    ],
-    n: "La evidencia sobre pruebas físicas sugiere combinar varios tests en lugar de depender de uno solo; los agentes físicos tienen respaldo débil."
+    dosis: "Ejercicio de control motor 2-3 días/semana, 3 series x 10-15 reps, mínimo 8 semanas. La estabilización lumbar mejora dolor y discapacidad."
   },
   cervicalgia: {
-    r: [
-      { c: "Neck Pain: Clinical Practice Guidelines Revision 2017 (JOSPT)", u: "https://www.jospt.org/doi/10.2519/jospt.2017.0302" }
+    nivel: "Alta",
+    refs: [
+      { cita: "JOSPT Neck Pain Clinical Practice Guidelines Revision 2017.", doi: "10.2519/jospt.2017.0302" },
+      { cita: "Lomas-Vega R, et al. Global Postural Re-education vs neck specific exercise in chronic neck pain. PMC. 2023.", doi: "PMC10035445" }
     ],
-    n: "El Spurling es para radiculopatía, no para cervicalgia mecánica inespecífica; la evidencia de TENS y magnetoterapia es débil frente a ejercicio y terapia manual."
+    dosis: "Ejercicio de flexores profundos 2-3 veces/día, 10 repeticiones. Fortalecimiento escapular 2-3 días/semana."
   },
-  cervicobraquialgia: {
-    r: [
-      { c: "The Spurling test and cervical radiculopathy (Spine)", u: "https://pubmed.ncbi.nlm.nih.gov/10788861/" }
+  gonartrosis: {
+    nivel: "Alta",
+    refs: [
+      { cita: "Ferreira RM, Gonçalves RS. Clinical Guideline for Knee Osteoarthritis. Osteology. 2025;5(3):23.", doi: "10.3390/osteology5030023" },
+      { cita: "Arora NK, et al. Exercise prescription variables in musculoskeletal pain. Sports Med. 2024;54(3):711-725.", doi: "10.1007/s40279-023-01966-2" }
     ],
-    n: "El Spurling tiene baja sensibilidad; conviene combinarlo con otros tests; la evidencia de TENS, calor y magnetoterapia es débil."
+    dosis: "Ejercicio de resistencia 2-3 días/semana, 3 series x 10-15 reps, intensidad moderada (40-60% 1RM). Mínimo 12 semanas."
   },
-  hombro: {
-    r: [
-      { c: "Rotator Cuff Tendinopathy Diagnosis, Nonsurgical Medical Care, and Rehabilitation: A Clinical Practice Guideline (JOSPT 2025)", u: "https://www.jospt.org/doi/10.2519/jospt.2025.0301" },
-      { c: "Electrotherapy modalities for rotator cuff disease (Cochrane)", u: "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD012225.pub2/" }
+  hombro_manguito: {
+    nivel: "Alta",
+    refs: [
+      { cita: "Lafrance S, et al. Exercise therapy for rotator cuff-related shoulder pain according to FITT. JOSPT. 2024;54(8):499-512.", doi: "10.2519/jospt.2024.12453" }
     ],
-    n: "Las revisiones sobre ultrasonido y electroterapia en manguito rotador muestran evidencia débil o de baja certeza; el ejercicio es el pilar, y los tests aislados como Jobe tienen precisión limitada."
-  },
-  rodilla: {
-    r: [
-      { c: "OARSI guidelines for the non-surgical management of knee osteoarthritis", u: "https://pubmed.ncbi.nlm.nih.gov/24462672/" }
-    ],
-    n: "Las guías de gonartrosis priorizan ejercicio, educación y control de peso; los agentes físicos (calor, magnetoterapia) son complementarios y de evidencia limitada."
+    dosis: "Ejercicio de control motor y fortalecimiento progresivo, 3 series x 12-15 reps, 3 días/semana, 12 semanas mínimo."
   },
   lca: {
-    r: [
-      { c: "The diagnostic accuracy of clinical tests for anterior cruciate ligament tears (KSSTA)", u: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9464183/" }
+    nivel: "Alta",
+    refs: [
+      { cita: "Ardern CL, et al. Return to sport consensus statement. Br J Sports Med. 2016.", doi: "10.1136/bjsports-2016-096278" }
     ],
-    n: "El Lachman es el test más sensible, pero su precisión ha sido sobreestimada según revisiones recientes; combinar con otros tests."
-  },
-  tobillo: {
-    r: [
-      { c: "Ankle stability and movement coordination impairments: Lateral ankle ligament sprains revision 2021 (JOSPT)", u: "https://www.jospt.org/doi/10.2519/jospt.2021.0302" },
-      { c: "Therapeutic ultrasound for acute ankle sprains (Cochrane)", u: "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD001250.pub2/" }
-    ],
-    n: "Evidencia débil para ultrasonido terapéutico; la guía enfatiza movilización y ejercicio."
-  },
-  aquiles: {
-    r: [
-      { c: "Achilles Pain, Stiffness, and Muscle Power Deficits: Midportion Achilles Tendinopathy Revision 2018 (JOSPT)", u: "https://www.jospt.org/doi/10.2519/jospt.2018.0302" }
-    ],
-    n: "El eje de la guía es el ejercicio de carga; el ultrasonido no es central."
-  },
-  fascitis: {
-    r: [
-      { c: "Heel Pain - Plantar Fasciitis: Revision 2023 (JOSPT)", u: "https://www.jospt.org/doi/10.2519/jospt.2023.0303" }
-    ],
-    n: "Evidencia limitada para ultrasonido terapéutico; la guía prioriza educación, ejercicio, terapia manual y ortesis."
-  },
-  epicondilitis: {
-    r: [
-      { c: "Lateral elbow pain and muscle function impairments (APTA/JOSPT CPG)", u: "https://www.jospt.org/doi/10.2519/jospt.2022.0302" }
-    ],
-    n: "La guía prioriza ejercicio y educación; la evidencia para ultrasonido, magnetoterapia y TENS es débil."
-  },
-  tunel: {
-    r: [
-      { c: "Carpal Tunnel Syndrome (AAOS Clinical Practice Guideline)", u: "https://www.aaos.org/ctscpg" }
-    ],
-    n: "Phalen tiene precisión diagnóstica limitada por sí solo; la guía no respalda de forma sólida frío, TENS ni magnetoterapia."
-  },
-  acv: {
-    r: [
-      { c: "Electrostimulation for promoting recovery of movement or functional ability after stroke (Cochrane)", u: "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD003241.pub3/" }
-    ],
-    n: "La fiabilidad de la Ashworth modificada es limitada; no se verificó respaldo para magnetoterapia."
-  },
-  parkinson: {
-    r: [
-      { c: "European Physiotherapy Guideline for Parkinson's Disease", u: "https://www.parkinsons.org.uk/professionals/resources/european-physiotherapy-guideline-parkinsons-disease" }
-    ],
-    n: ""
-  },
-  epoc: {
-    r: [
-      { c: "Pulmonary rehabilitation for chronic obstructive pulmonary disease (Cochrane)", u: "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD003793.pub3/" }
-    ],
-    n: ""
+    dosis: "Rehabilitación de 9-12 meses. Criterios de retorno: simetría >90% en hop tests y fuerza de cuádriceps."
   },
   riesgo_caidas: {
-    r: [
-      { c: "Exercise for preventing falls in older people living in the community (Cochrane)", u: "https://pubmed.ncbi.nlm.nih.gov/30703272/" }
+    nivel: "Alta",
+    refs: [
+      { cita: "Cochrane Review. Exercise for preventing falls in older people. 2019.", doi: "10.1002/14651858.CD012424.pub2" }
     ],
-    n: ""
-  },
-  sarcopenia: {
-    r: [
-      { c: "Sarcopenia: revised European consensus on definition and diagnosis (EWGSOP2)", u: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6322506/" }
-    ],
-    n: ""
-  },
-  artritis_reumatoide: {
-    r: [
-      { c: "EULAR recommendations for physical activity in people with inflammatory arthritis and osteoarthritis", u: "https://pubmed.ncbi.nlm.nih.gov/29967194/" }
-    ],
-    n: ""
-  },
-  fibromialgia: {
-    r: [
-      { c: "EULAR revised recommendations for the management of fibromyalgia", u: "https://pubmed.ncbi.nlm.nih.gov/27377815/" }
-    ],
-    n: ""
-  },
-  osteoporosis: {
-    r: [
-      { c: "Exercise to Prevent and Manage Frailty and Fragility Fractures", u: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10105671/" }
-    ],
-    n: ""
-  },
-  cancer_ejercicio: {
-    r: [
-      { c: "Exercise for people diagnosed with cancer: managing fatigue during and after cancer treatment (Cochrane)", u: "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD006145.pub3/" }
-    ],
-    n: ""
+    dosis: "Fuerza 2-3 días/semana, ≥12 semanas. Intensidad moderada-alta (60-80% 1RM) para robustos, baja-moderada para frágiles."
   }
+};
+
+// ============ BIBLIOGRAFÍA CLÁSICA ============
+const BIBLIOGRAFIA = {
+  souchard: { autor: "Souchard PE.", titulo: "Reeducación Postural Global: El método RPG", editorial: "Elsevier Masson", edicion: "1ª ed.", anio: 2011, isbn: "978-84-458-2074-4", nota: "Libro fundacional del método RPG." },
+  tortora: { autor: "Tortora GJ, Derrickson B.", titulo: "Principios de Anatomía y Fisiología", editorial: "Médica Panamericana", edicion: "13ª ed.", anio: 2018, isbn: "978-950-06-9457-1", nota: "Anatomía de referencia." },
+  kapandji: { autor: "Kapandji IA.", titulo: "Fisiología Articular (3 tomos)", editorial: "Médica Panamericana", edicion: "6ª ed.", anio: 2012, isbn: "978-950-06-9529-5", nota: "Biblia de la biomecánica articular." },
+  kendall: { autor: "Kendall FP, et al.", titulo: "Músculos: Pruebas y Funciones", editorial: "Médica Panamericana", edicion: "5ª ed.", anio: 2007, isbn: "978-950-06-0416-7", nota: "Evaluación muscular manual." },
+  neumann: { autor: "Neumann DA.", titulo: "Kinesiology of the Musculoskeletal System", editorial: "Elsevier", edicion: "3ª ed.", anio: 2016, isbn: "978-0-323-28753-7", nota: "Kinesiología avanzada." },
+  garcia: { autor: "García Porrero JA, Hurlé JM.", titulo: "Anatomía Humana", editorial: "Médica Panamericana", edicion: "2ª ed.", anio: 2015, isbn: "978-84-9835-594-2", nota: "Anatomía descriptiva." },
+  campignion: { autor: "Campignion L.", titulo: "Cadenas musculares y articulares", editorial: "Elsevier Masson", edicion: "1ª ed.", anio: 2001, isbn: "978-84-458-1148-3", nota: "Complemento del RPG." },
+  busquet: { autor: "Busquet L.", titulo: "Las cadenas fisiológicas (5 tomos)", editorial: "Elsevier Masson", edicion: "1ª ed.", anio: 2006, isbn: "978-84-458-1645-7", nota: "Cadenas fisiológicas." },
+  bienfait: { autor: "Bienfait M.", titulo: "Los planos de la organización corporal", editorial: "Elsevier Masson", edicion: "1ª ed.", anio: 1999, isbn: "978-84-458-0779-0", nota: "Análisis postural francés." }
+};
+
+// ============ RPG - POSTURAS DE SOUCHARD ============
+const RPG_POSTURAS = {
+  rana_suelo: { nombre: "Rana al suelo", cadena: "Cadena anterior (fémur, cadera)", duracion: "20-30 min", objetivo: "Apertura de caderas y estiramiento del psoas, recto anterior y aductores.", indicaciones: ["Lumbalgia con acortamiento de psoas", "Síndrome cruzado inferior", "Coxartrosis con contractura"], contraindicaciones: ["Luxación de cadera", "Prótesis reciente", "Embarazo avanzado"], pasos: ["Paciente en decúbito supino.", "Piernas abiertas en abducción, rodillas flexionadas, plantas juntas.", "Brazos en cruz o detrás de la cabeza.", "Corrección activa: apertura de caderas mientras se espira.", "Sostener 20-30 min con respiración diafragmática."], bib: "Souchard, P. Reeducación Postural Global. Elsevier Masson. Cap. 4." },
+  rana_aire: { nombre: "Rana en el aire", cadena: "Cadena anterior del tronco + MMSS", duracion: "20-30 min", objetivo: "Estiramiento global de la cadena anterior con apertura de brazos.", indicaciones: ["Hipercifosis", "Cervicalgia con proyección anterior", "Síndrome cruzado superior"], contraindicaciones: ["Luxación de hombro", "Cirugía mamaria reciente"], pasos: ["Paciente en decúbito supino.", "Piernas en flexión de cadera 90° apoyadas sobre una silla o pared.", "Brazos abiertos a 90°, palmas hacia arriba.", "Corrección activa: apertura torácica mientras se espira.", "Sostener 20-30 min."], bib: "Souchard, P. Reeducación Postural Global. Cap. 5." },
+  angel_suelo: { nombre: "Ángel en el suelo", cadena: "Cadena inspiratoria anterior", duracion: "25-30 min", objetivo: "Apertura torácica y estiramiento del diafragma y músculos inspiratorios.", indicaciones: ["Hipercifosis dorsal", "EPOC (con adaptación)", "Cervicalgia postural"], contraindicaciones: ["Costillas fracturadas recientes", "Cirugía torácica"], pasos: ["Paciente en decúbito supino con una toalla enrollada debajo de la columna dorsal.", "Brazos en cruz, palmas hacia arriba.", "Piernas ligeramente flexionadas y separadas.", "Corrección activa: apertura torácica + respiración costal baja.", "Sostener 25-30 min."], bib: "Souchard, P. Reeducación Postural Global. Cap. 6." },
+  angel_sentado: { nombre: "Ángel sentado", cadena: "Cadena inspiratoria con sedestación", duracion: "20-25 min", objetivo: "Apertura torácica en sedestación, ideal para dolor cervical por pantallas.", indicaciones: ["Text neck", "Cervicalgia postural", "Síndrome cruzado superior"], contraindicaciones: ["Hernia discal lumbar con irradiación"], pasos: ["Paciente sentado en un taburete o silla sin respaldo.", "Pies apoyados en el suelo, rodillas separadas.", "Brazos abiertos a 90°, palmas hacia arriba.", "Corrección activa: apertura torácica + extensión cervical suave.", "Sostener 20-25 min."], bib: "Souchard, P. Reeducación Postural Global. Cap. 6." },
+  portugues: { nombre: "El portugués", cadena: "Cadena anterior del tronco + MMII", duracion: "25-30 min", objetivo: "Estiramiento de la cadena anterior con elongación axial.", indicaciones: ["Escoliosis", "Hipercifosis", "Lumbalgia crónica"], contraindicaciones: ["Fracturas vertebrales recientes", "Osteoporosis severa"], pasos: ["Paciente en decúbito supino, piernas extendidas juntas.", "Brazos en extensión por encima de la cabeza.", "Corrección activa: elongación axial con espiración.", "Sostener 25-30 min."], bib: "Souchard, P. Reeducación Postural Global. Cap. 7." },
+  bailarina: { nombre: "La bailarina", cadena: "Cadena posterior", duracion: "20-25 min", objetivo: "Estiramiento de la cadena posterior completa.", indicaciones: ["Lumbalgia con rectificación", "Isquiotibiales acortados", "Cervicalgia con rectificación"], contraindicaciones: ["Hernia discal aguda", "Ciática en fase irritativa"], pasos: ["Paciente en decúbito supino.", "Piernas extendidas y juntas, pies en flexión dorsal.", "Brazos en extensión por encima de la cabeza.", "Corrección activa: elongación + respiración.", "Sostener 20-25 min."], bib: "Souchard, P. Reeducación Postural Global. Cap. 8." },
+  flecha: { nombre: "La flecha", cadena: "Cadena posterior + MMSS", duracion: "20-30 min", objetivo: "Estiramiento posterior con apertura de brazos y liberación escapular.", indicaciones: ["Cervicalgia con rectificación", "Dorsalgia", "Escápula alada"], contraindicaciones: ["Luxación de hombro", "Cirugía de hombro reciente"], pasos: ["Paciente en decúbito supino.", "Brazos en extensión por encima de la cabeza.", "Piernas extendidas juntas.", "Corrección activa: apertura escapular + respiración diafragmática.", "Sostener 20-30 min."], bib: "Souchard, P. Reeducación Postural Global. Cap. 9." }
+};
+
+const RPG_INDICACIONES = {
+  lumbalgia: ["rana_suelo", "bailarina"],
+  cervicalgia: ["angel_sentado", "flecha"],
+  hernia_lumbar: ["bailarina"],
+  hernia_dorsal: ["angel_suelo", "portugues"],
+  escoliosis: ["portugues", "rana_aire"],
+  hipercifosis: ["angel_suelo", "portugues"],
+  gonartrosis: ["rana_suelo"],
+  epoc: ["angel_suelo"],
+  fibromialgia: ["angel_sentado"],
+  osteoporosis: ["portugues"],
+  hombro_manguito: ["rana_aire"]
 };

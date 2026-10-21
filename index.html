@@ -49,7 +49,7 @@
       <div class="card" id="calendar-container"></div>
     </div>
 
-    <!-- NUEVO PACIENTE -->
+    <!-- NUEVO PACIENTE (CON ANAMNESIS COMPLETA) -->
     <div id="new-patient-view" class="view hidden">
       <div class="header-actions">
         <h2>Nuevo Paciente</h2><button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
@@ -62,7 +62,40 @@
           <div><label>Peso (kg)</label><input type="number" id="new-patient-weight"></div>
         </div>
         <label>Diagnóstico</label><select id="new-patient-pathology"></select>
+        <label>Nivel de Actividad</label>
+        <select id="new-patient-activity">
+          <option value="sedentario">Sedentario</option>
+          <option value="activo">Activo</option>
+          <option value="deportista">Deportista</option>
+          <option value="laboral_pesado">Trabajo físico exigente</option>
+        </select>
+        
+        <label>Anamnesis (Motivo de consulta)</label>
+        <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas que empeora al estar sentado..."></textarea>
+
+        <label>Medicación y su influencia</label>
+        <textarea id="new-patient-meds" placeholder="Ej: Toma Ibuprofeno 400mg cada 8hs (puede enmascarar el dolor y afectar la coagulación)"></textarea>
+
         <label>Fecha y Hora del Turno</label><input type="datetime-local" id="new-patient-turno">
+        
+        <fieldset class="flags-fieldset red-border">
+          <legend>🚩 Banderas Rojas (Derivación Urgente)</legend>
+          <label class="check-item"><input type="checkbox" value="red_dolor_nocturno" class="red-flag"> Dolor nocturno no mecánico</label>
+          <label class="check-item"><input type="checkbox" value="red_perdida_peso" class="red-flag"> Pérdida de peso inexplicada</label>
+          <label class="check-item"><input type="checkbox" value="red_fiebre" class="red-flag"> Fiebre o malestar general</label>
+          <label class="check-item"><input type="checkbox" value="red_cancer" class="red-flag"> Antecedente de cáncer</label>
+          <label class="check-item"><input type="checkbox" value="red_neurologico" class="red-flag"> Déficit neurológico</label>
+          <label class="check-item"><input type="checkbox" value="red_esfinteres" class="red-flag"> Disfunción de esfínteres</label>
+        </fieldset>
+
+        <fieldset class="flags-fieldset yellow-border">
+          <legend>🟡 Banderas Amarillas (Psicosociales)</legend>
+          <label class="check-item"><input type="checkbox" value="yellow_kinesiofobia" class="yellow-flag"> <b>Kinesiofobia</b></label>
+          <label class="check-item"><input type="checkbox" value="yellow_catastrofismo" class="yellow-flag"> Catastrofismo</label>
+          <label class="check-item"><input type="checkbox" value="yellow_animo" class="yellow-flag"> Bajo ánimo / ansiedad</label>
+          <label class="check-item"><input type="checkbox" value="yellow_laboral" class="yellow-flag"> Insatisfacción laboral</label>
+        </fieldset>
+
         <button onclick="createPatient()" class="btn-primary mt-2">Guardar Paciente</button>
       </div>
     </div>
@@ -72,17 +105,26 @@
       <div class="session-topbar">
         <button onclick="showView('dashboard-view')" class="btn-icon">←</button>
         <h2 id="session-patient-name">Paciente</h2>
-        <button onclick="exportarHistoria()" class="btn-icon" title="Exportar PDF">🖨️</button>
+        <button onclick="exportarHistoria()" class="btn-icon" title="Exportar Historia Completa">🖨️</button>
       </div>
 
       <div class="tab-content">
-        <!-- PESTAÑA 1: MAPA -->
+        <!-- PESTAÑA 1: MAPA Y ANAMNESIS -->
         <div id="tab-mapa" class="tab-pane">
+          <!-- RESUMEN DE ANAMNESIS -->
+          <div class="card anamnesis-card">
+            <h3>📋 Resumen Clínico</h3>
+            <p id="anamnesis-resumen" class="sub" style="margin-bottom:10px;"></p>
+            <div id="meds-resumen" class="sub" style="color:var(--warning); margin-bottom:10px;"></div>
+            <div id="flags-alert"></div>
+          </div>
+          
           <div class="card text-center">
             <h3 id="patologia-nombre">Patología</h3>
             <p class="sub" id="patologia-test">Test</p>
             <button onclick="verTest()" class="btn-secondary w-100 mt-1">🔍 Ver Test Clínico</button>
           </div>
+          
           <div class="card text-center">
             <h3>📍 Foco de Dolor</h3>
             <div class="body-map-container">
@@ -102,8 +144,6 @@
                 <circle id="zone-rodilla-der" cx="120" cy="300" r="18" fill="#e11d48" opacity="0" />
                 <circle id="zone-tobillo" cx="80" cy="360" r="12" fill="#e11d48" opacity="0" />
                 <circle id="zone-tobillo-der" cx="120" cy="360" r="12" fill="#e11d48" opacity="0" />
-                <circle id="zone-codo" cx="40" cy="170" r="12" fill="#e11d48" opacity="0" />
-                <circle id="zone-codo-der" cx="160" cy="170" r="12" fill="#e11d48" opacity="0" />
               </svg>
             </div>
           </div>
@@ -116,7 +156,7 @@
           </div>
         </div>
 
-        <!-- PESTAÑA 2: TERAPIA -->
+        <!-- PESTAÑA 2: TERAPIA (CONSULTORIO Y CASA) -->
         <div id="tab-ejercicios" class="tab-pane hidden">
           <div class="card">
             <h3>Agentes Físicos</h3>
@@ -129,8 +169,12 @@
           </div>
           <div class="card border-teal">
             <h3>2. Plan para Casa</h3>
+            <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2">✨ Armar rutina automática para casa</button>
             <ul id="selected-casa" class="selected-list"></ul>
-            <button onclick="sendWhatsApp()" class="btn-whatsapp mt-2" style="width:100%;">📲 Enviar a WhatsApp</button>
+            <div class="grid-2 mt-2">
+              <button onclick="imprimirPlanCasa()" class="btn-secondary" style="background:#fff; border:1px solid var(--primary); color:var(--primary);">🖨️ Imprimir</button>
+              <button onclick="sendWhatsApp()" class="btn-whatsapp">📲 WhatsApp</button>
+            </div>
           </div>
         </div>
 
@@ -149,8 +193,8 @@
         <!-- PESTAÑA 4: CIERRE -->
         <div id="tab-cierre" class="tab-pane hidden">
           <div class="card">
-            <h3>Notas Clínicas</h3>
-            <textarea id="session-notes" placeholder="Evolución, observaciones..."></textarea>
+            <h3>Notas Clínicas de la Sesión</h3>
+            <textarea id="session-notes" placeholder="Evolución de hoy, ajustes, etc..."></textarea>
             <button onclick="saveSession()" class="btn-primary mt-2">💾 Guardar Sesión</button>
           </div>
         </div>
@@ -165,6 +209,7 @@
     </div>
   </main>
 
+  <!-- MODAL DE MEDIA -->
   <div id="media-modal" class="modal hidden">
     <div class="modal-content">
       <span class="modal-close" onclick="closeModal()">×</span>
@@ -176,7 +221,10 @@
     </div>
   </div>
 
+  <!-- ÁREAS DE IMPRESIÓN -->
   <div id="print-area" class="print-only"></div>
+  <div id="print-home-area" class="print-only"></div>
+  
   <div id="toast" class="toast hidden"></div>
   <script src="data/patologias.js"></script>
   <script src="app.js"></script>

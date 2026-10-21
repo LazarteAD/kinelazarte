@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
-
   <header class="app-header">
     <div class="brand">
       <div class="logo-icon">K</div>
@@ -22,13 +21,17 @@
   </header>
 
   <main class="main-content">
-    <!-- VISTA 1: LOGIN -->
+    <!-- VISTA 1: LOGIN SEGURO -->
     <div id="login-view" class="view">
       <div class="card login-card">
         <h2>Acceso Profesional</h2>
-        <p class="sub">Ingresá para gestionar tus pacientes.</p>
-        <input type="email" id="login-email" placeholder="Email profesional" required>
+        <p class="sub">Ingresá tus credenciales para acceder a tus pacientes.</p>
+        <label>Email profesional</label>
+        <input type="email" id="login-email" placeholder="ej: kine@correo.com" required>
+        <label>Contraseña</label>
+        <input type="password" id="login-password" placeholder="Mínimo 6 caracteres" required>
         <button onclick="login()" class="btn-primary mt-2">Ingresar</button>
+        <p class="sub mt-2" style="text-align:center; font-size:0.75rem;">Si es tu primera vez, se creará una cuenta automáticamente.</p>
       </div>
     </div>
 
@@ -49,13 +52,10 @@
       <div class="card">
         <label>Nombre completo</label>
         <input type="text" id="new-patient-name" placeholder="Ej: Juan Pérez">
-        
         <label>WhatsApp (código país, sin +)</label>
         <input type="tel" id="new-patient-phone" placeholder="Ej: 5491123456789">
-        
         <label>Fecha de Ingreso</label>
         <input type="date" id="new-patient-date">
-
         <div class="grid-2">
           <div><label>Edad</label><input type="number" id="new-patient-age" placeholder="Años"></div>
           <div><label>Peso (kg)</label><input type="number" id="new-patient-weight" placeholder="kg"></div>
@@ -64,7 +64,6 @@
           <div><label>Altura (cm)</label><input type="number" id="new-patient-height" placeholder="cm"></div>
           <div><label>Diagnóstico</label><select id="new-patient-pathology"></select></div>
         </div>
-
         <fieldset class="comorb-fieldset">
           <legend>Banderas Rojas (Alertas)</legend>
           <label class="check-item"><input type="checkbox" value="peso" class="flag"> Pérdida de peso inexplicada</label>
@@ -72,14 +71,12 @@
           <label class="check-item"><input type="checkbox" value="cancer" class="flag"> Antecedente de cáncer</label>
           <label class="check-item"><input type="checkbox" value="neurologico" class="flag"> Déficit neurológico</label>
         </fieldset>
-
         <fieldset class="comorb-fieldset">
           <legend>Medicación (Contraindicaciones)</legend>
           <label class="check-item"><input type="checkbox" value="anticoagulantes" class="med"> Anticoagulantes</label>
           <label class="check-item"><input type="checkbox" value="corticoides" class="med"> Corticoides crónicos</label>
           <label class="check-item"><input type="checkbox" value="aines" class="med"> AINEs crónicos</label>
         </fieldset>
-
         <button onclick="createPatient()" class="btn-primary mt-2">Guardar y Comenzar</button>
       </div>
     </div>
@@ -94,31 +91,26 @@
           <button onclick="toggleTimer()" id="timer-btn" class="btn-timer">▶</button>
         </div>
       </div>
-      
       <div class="session-content">
         <div class="card accent-card">
           <h3 id="patologia-nombre">Diagnóstico</h3>
           <p class="sub" id="patologia-test">Test</p>
           <button onclick="verTest()" class="btn-secondary w-100 mt-1">🔍 Ver Test Clínico</button>
         </div>
-
         <div class="card">
           <h3>1. Ejercicios en Consultorio</h3>
           <div id="suggested-exercises" class="chips-container"></div>
           <ul id="selected-consultorio" class="selected-list"></ul>
         </div>
-        
         <div class="card border-teal">
           <h3>2. Plan para Casa (WhatsApp)</h3>
           <p class="sub">Estos ejercicios se enviarán al paciente.</p>
           <ul id="selected-casa" class="selected-list"></ul>
         </div>
-        
         <div class="card">
           <h3>3. Agentes Físicos</h3>
           <div id="agents-list"></div>
         </div>
-
         <div class="card">
           <h3>4. Evaluación y Evolución</h3>
           <div class="grid-2">
@@ -140,30 +132,25 @@
     </div>
   </main>
 
-  <!-- BARRA DE NAVEGACIÓN INFERIOR -->
   <nav class="bottom-nav">
-    <button onclick="showView('dashboard-view')" class="nav-item">
-      <span class="nav-icon">🏠</span> Inicio
-    </button>
-    <button onclick="showView('new-patient-view')" class="nav-item highlight">
-      <span class="nav-icon">+</span> Paciente
-    </button>
+    <button onclick="showView('dashboard-view')" class="nav-item"><span class="nav-icon">🏠</span> Inicio</button>
+    <button onclick="showView('new-patient-view')" class="nav-item highlight"><span class="nav-icon">+</span> Paciente</button>
   </nav>
 
-  <!-- MODAL DE VIDEO INTEGRADO -->
+  <!-- MODAL DE VIDEO (Buscador oficial de YouTube) -->
   <div id="video-modal" class="modal hidden">
     <div class="modal-content">
       <span class="modal-close" onclick="closeModal()">×</span>
       <h3 id="modal-title">Demostración</h3>
-      <div class="video-container">
-        <iframe id="video-iframe" src="" frameborder="0" allowfullscreen></iframe>
+      <div style="text-align:center; padding: 20px 0;">
+        <p style="margin-bottom:15px; font-size:14px;">Buscá el video explicativo en YouTube o imágenes en Google:</p>
+        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary" style="text-decoration:none; display:block; margin-bottom:10px; text-align:center;">▶ Buscar en YouTube</a>
+        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary" style="text-decoration:none; display:block; text-align:center;">🖼️ Buscar en Google Imágenes</a>
       </div>
-      <p class="sub mt-1" style="text-align:center;">Video demostrativo extraído de YouTube.</p>
     </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>
-
   <script src="data/patologias.js"></script>
   <script src="app.js"></script>
 </body>

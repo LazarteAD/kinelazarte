@@ -3,39 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#f0f4f8">
-  <title>KineFlow Clinical</title>
+  <meta name="theme-color" content="#f0f4f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <title>KineFlow Clinical | Elite Center</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="data/patologias.js"></script>
   <script src="data/evidencia.js"></script>
+  <script src="data/farmacos.js"></script>
+  <script src="data/videos.js"></script>
 </head>
 <body>
-  <!-- HEADER -->
   <header class="app-header">
     <div class="brand">
       <div class="logo-icon">K</div>
-      <div><h1>KineFlow <span>Clinical</span></h1><small>Rehabilitación con evidencia</small></div>
+      <div><h1>KineFlow <span>Clinical</span></h1><small>Rehabilitación de élite</small></div>
     </div>
     <div id="sync-status" class="sync-indicator offline">Local</div>
   </header>
 
   <main class="main-content" style="max-width: 1100px; margin: 0 auto; padding: 24px;">
-    <!-- VISTA LOGIN -->
+    <!-- LOGIN -->
     <div id="login-view" class="view">
       <div class="card login-card glass">
         <div class="login-logo">🩺</div>
-        <h2>Bienvenido/a</h2>
-        <p class="sub">Ingresá a tu consultorio digital</p>
+        <h2>Acceso Profesional</h2>
+        <p class="sub">Ingresá a tu centro de kinesifisiatría</p>
         <label>Email</label><input type="email" id="login-email" placeholder="kine@correo.com">
         <label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••">
         <button onclick="login()" class="btn-primary mt-2">Ingresar</button>
       </div>
     </div>
 
-    <!-- VISTA DASHBOARD -->
+    <!-- DASHBOARD -->
     <div id="dashboard-view" class="view hidden">
       <div class="header-actions">
         <h2>Mis Pacientes</h2>
@@ -45,7 +47,7 @@
       <button onclick="showView('new-patient-view')" class="btn-fab">+</button>
     </div>
 
-    <!-- VISTA CALENDARIO -->
+    <!-- CALENDARIO -->
     <div id="calendar-view" class="view hidden">
       <div class="header-actions">
         <h2>Agenda de Turnos</h2>
@@ -54,7 +56,7 @@
       <div class="card glass" id="calendar-container"></div>
     </div>
 
-    <!-- VISTA NUEVO PACIENTE -->
+    <!-- NUEVO PACIENTE -->
     <div id="new-patient-view" class="view hidden">
       <div class="header-actions"><h2>Nuevo Paciente</h2><button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button></div>
       <div class="card glass">
@@ -72,7 +74,8 @@
           <option value="laboral_pesado">Trabajo físico exigente</option>
         </select>
         <label>Anamnesis</label><textarea id="new-patient-anamnesis" placeholder="Motivo de consulta..."></textarea>
-        <label>Medicación y su influencia</label><textarea id="new-patient-meds" placeholder="Fármacos relevantes..."></textarea>
+        <label>Fármacos (Principio Activo)</label>
+        <input type="text" id="new-patient-meds" placeholder="Ej: Ibuprofeno, Prednisona...">
         <label>Fecha y Hora del Turno (opcional)</label><input type="datetime-local" id="new-patient-turno">
         <fieldset class="flags-fieldset red-border">
           <legend>🚩 Banderas Rojas (Derivación)</legend>
@@ -92,7 +95,7 @@
       </div>
     </div>
 
-    <!-- VISTA SESIÓN (NUEVA ESTRUCTURA) -->
+    <!-- SESIÓN -->
     <div id="session-view" class="view hidden">
       <div class="session-topbar">
         <button onclick="showView('dashboard-view'); renderPatientList();" class="btn-icon">←</button>
@@ -101,32 +104,30 @@
       </div>
 
       <div class="tab-content">
-        <!-- PESTAÑA 1: PACIENTE (Layout de 2 Columnas) -->
+        <!-- PESTAÑA PACIENTE -->
         <div id="tab-paciente" class="tab-pane">
           <div class="patient-layout">
-            <!-- Columna Izquierda: Resumen Clínico -->
             <div class="clinical-summary">
               <div class="card glass">
                 <h3>📋 Resumen Clínico</h3>
                 <div class="anamnesis-text" id="anamnesis-resumen"></div>
                 <div class="meds-box" id="meds-resumen"></div>
                 <div id="flags-alert" style="margin-top: 16px;"></div>
+                <div id="farmaco-alert" style="margin-top: 16px;"></div>
               </div>
             </div>
-            <!-- Columna Derecha: Tests Clínicos -->
             <div class="clinical-tests">
               <div class="card glass">
                 <h3>🔍 Tests Clínicos</h3>
                 <div class="test-card">
                   <h4 id="test-nombre"></h4>
                   <p id="test-descripcion" class="sub"></p>
-                  <div class="test-visual" id="test-visual">[Imagen o Video Demostrativo]</div>
+                  <div class="test-visual" id="test-visual">[Video Demostrativo]</div>
                   <button onclick="verTest()" class="btn-secondary">▶ Ver Demostración</button>
                 </div>
               </div>
             </div>
           </div>
-          <!-- Pie de Página: Evidencia y Bibliografía -->
           <div class="evidence-footer">
             <h4>📚 Evidencia Científica y Bibliografía</h4>
             <div id="evidencia-panel"></div>
@@ -134,9 +135,8 @@
           </div>
         </div>
 
-        <!-- PESTAÑA 2: TERAPIA (Módulo Mejorado) -->
+        <!-- PESTAÑA TERAPIA -->
         <div id="tab-terapia" class="tab-pane hidden">
-          <!-- Selector de Tiempo -->
           <div class="card glass">
             <h3>⏱️ Duración de la Sesión</h3>
             <div class="session-timer-selector">
@@ -144,29 +144,23 @@
               <div class="timer-chip active" data-time="50" onclick="selectSessionTime(50, this)">50 min</div>
               <div class="timer-chip" data-time="60" onclick="selectSessionTime(60, this)">60 min</div>
             </div>
-            <p class="sub" id="time-summary">Tiempo total: 0 min</p>
+            <p class="sub" id="time-summary">Tiempo planificado: 0 min / Objetivo: 50 min</p>
           </div>
-
-          <!-- Agentes Físicos -->
           <div class="card glass">
             <h3>⚡ Agentes Físicos</h3>
             <div id="agents-list" class="agent-selector"></div>
           </div>
-
-          <!-- Ejercicios -->
           <div class="card glass">
             <h3>🏋️ Ejercicios</h3>
             <div id="suggested-exercises" class="exercise-list"></div>
           </div>
         </div>
 
-        <!-- PESTAÑA 3: EVOLUCIÓN -->
+        <!-- PESTAÑA EVOLUCIÓN -->
         <div id="tab-evolucion" class="tab-pane hidden">
           <div class="card glass">
-            <h3>📊 Evolución del Dolor</h3>
-            <div class="chart-container">
-              <canvas id="chart-evolucion"></canvas>
-            </div>
+            <h3>📊 Evolución del Dolor (EVA)</h3>
+            <div class="chart-container"><canvas id="chart-evolucion"></canvas></div>
           </div>
           <div class="card glass">
             <h3>📋 Plan de 10 Sesiones</h3>
@@ -174,15 +168,37 @@
           </div>
         </div>
 
-        <!-- PESTAÑA 4: CIERRE (Rutina para Casa) -->
+        <!-- PESTAÑA CIERRE -->
         <div id="tab-cierre" class="tab-pane hidden">
+          <!-- Evaluación Tridimensional -->
+          <div class="card glass">
+            <h3>📊 Evaluación del Dolor (EVA 0-10)</h3>
+            <div class="grid-3">
+              <div class="eva-box">
+                <label>Reposo</label>
+                <div class="eva-value" id="eva-reposo-val">0</div>
+                <input type="range" id="eva-reposo" min="0" max="10" value="0" oninput="updateEva('reposo', this.value)">
+              </div>
+              <div class="eva-box">
+                <label>Movimiento Activo</label>
+                <div class="eva-value" id="eva-activo-val">0</div>
+                <input type="range" id="eva-activo" min="0" max="10" value="0" oninput="updateEva('activo', this.value)">
+              </div>
+              <div class="eva-box">
+                <label>Movimiento Pasivo</label>
+                <div class="eva-value" id="eva-pasivo-val">0</div>
+                <input type="range" id="eva-pasivo" min="0" max="10" value="0" oninput="updateEva('pasivo', this.value)">
+              </div>
+            </div>
+          </div>
+
           <div class="card glass">
             <h3>📝 Notas de la Sesión</h3>
             <textarea id="session-notes" placeholder="Evolución de hoy..."></textarea>
           </div>
+
           <div class="card glass border-teal">
             <h3>🏠 Plan para Casa</h3>
-            <p class="sub">Generá la rutina de ejercicios simples para el hogar.</p>
             <button onclick="generarRutinaCasa()" class="btn-secondary mt-1">✨ Generar Rutina Automática</button>
             <div id="rutina-casa-preview" style="margin-top: 16px;"></div>
             <div class="home-routine-actions">
@@ -194,7 +210,6 @@
         </div>
       </div>
 
-      <!-- BARRA DE PESTAÑAS -->
       <nav class="tab-bar">
         <button class="tab-btn active" onclick="switchTab('paciente', this)"><span>🧑‍⚕️</span>Paciente</button>
         <button class="tab-btn" onclick="switchTab('terapia', this)"><span>⚡</span>Terapia</button>
@@ -204,14 +219,13 @@
     </div>
   </main>
 
-  <!-- MODAL MEDIA -->
+  <!-- MODAL DE VIDEO EMBEBIDO -->
   <div id="media-modal" class="modal hidden">
     <div class="modal-content glass">
       <span class="modal-close" onclick="closeModal()">×</span>
       <h3 id="modal-title">Demostración</h3>
-      <div class="modal-actions">
-        <a id="modal-yt-link" href="#" target="_blank" class="btn-primary">▶ Ver Video</a>
-        <a id="modal-img-link" href="#" target="_blank" class="btn-secondary">🖼️ Ver Imágenes</a>
+      <div class="video-container">
+        <iframe id="video-frame" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
       </div>
     </div>
   </div>

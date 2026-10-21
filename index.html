@@ -49,7 +49,7 @@
       <div class="card" id="calendar-container"></div>
     </div>
 
-    <!-- NUEVO PACIENTE (CON ANAMNESIS COMPLETA) -->
+    <!-- NUEVO PACIENTE -->
     <div id="new-patient-view" class="view hidden">
       <div class="header-actions">
         <h2>Nuevo Paciente</h2><button onclick="showView('dashboard-view')" class="btn-text">Cancelar</button>
@@ -71,10 +71,10 @@
         </select>
         
         <label>Anamnesis (Motivo de consulta)</label>
-        <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas que empeora al estar sentado..."></textarea>
+        <textarea id="new-patient-anamnesis" placeholder="Ej: Dolor lumbar desde hace 3 semanas..."></textarea>
 
         <label>Medicación y su influencia</label>
-        <textarea id="new-patient-meds" placeholder="Ej: Toma Ibuprofeno 400mg cada 8hs (puede enmascarar el dolor y afectar la coagulación)"></textarea>
+        <textarea id="new-patient-meds" placeholder="Ej: Toma Ibuprofeno 400mg cada 8hs..."></textarea>
 
         <label>Fecha y Hora del Turno</label><input type="datetime-local" id="new-patient-turno">
         
@@ -111,9 +111,12 @@
       <div class="tab-content">
         <!-- PESTAÑA 1: MAPA Y ANAMNESIS -->
         <div id="tab-mapa" class="tab-pane">
-          <!-- RESUMEN DE ANAMNESIS -->
+          <!-- RESUMEN DE ANAMNESIS CON BOTÓN EDITAR -->
           <div class="card anamnesis-card">
-            <h3>📋 Resumen Clínico</h3>
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+              <h3>📋 Resumen Clínico</h3>
+              <button onclick="editarAnamnesis()" class="btn-icon" style="font-size:1rem;" title="Editar Anamnesis">✏️</button>
+            </div>
             <p id="anamnesis-resumen" class="sub" style="margin-bottom:10px;"></p>
             <div id="meds-resumen" class="sub" style="color:var(--warning); margin-bottom:10px;"></div>
             <div id="flags-alert"></div>
@@ -156,20 +159,31 @@
           </div>
         </div>
 
-        <!-- PESTAÑA 2: TERAPIA (CONSULTORIO Y CASA) -->
+        <!-- PESTAÑA 2: TERAPIA (CON DOSIFICACIÓN Y TIEMPO TOTAL) -->
         <div id="tab-ejercicios" class="tab-pane hidden">
+          <!-- RESUMEN DE TIEMPO -->
+          <div class="card" style="background:var(--primary-light); border:1px solid var(--primary);">
+            <h3 style="margin:0;">⏱️ Tiempo Total de Sesión</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+              <div style="text-align:center;"><small style="color:var(--text-muted);">Ejercicios</small><br><b id="time-ejercicios" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
+              <div style="text-align:center;"><small style="color:var(--text-muted);">Agentes</small><br><b id="time-agentes" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
+              <div style="text-align:center;"><small style="color:var(--text-muted);">Total</small><br><b id="time-total" style="font-size:1.2rem; color:var(--primary);">0 min</b></div>
+            </div>
+            <div id="time-alert" style="margin-top:10px; font-size:0.8rem; font-weight:bold; color:var(--danger);"></div>
+          </div>
+
           <div class="card">
-            <h3>Agentes Físicos</h3>
+            <h3>1. Agentes Físicos</h3>
             <div id="agents-list"></div>
           </div>
           <div class="card">
-            <h3>1. Consultorio</h3>
-            <div id="suggested-exercises" class="chips-container"></div>
+            <h3>2. Consultorio</h3>
+            <div id="suggested-exercises" class="chips-container" style="max-height: 150px; overflow-y: auto;"></div>
             <ul id="selected-consultorio" class="selected-list"></ul>
           </div>
           <div class="card border-teal">
-            <h3>2. Plan para Casa</h3>
-            <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2">✨ Armar rutina automática para casa</button>
+            <h3>3. Plan para Casa</h3>
+            <button onclick="autocompletarCasa()" class="btn-secondary w-100 mb-2">✨ Armar rutina automática</button>
             <ul id="selected-casa" class="selected-list"></ul>
             <div class="grid-2 mt-2">
               <button onclick="imprimirPlanCasa()" class="btn-secondary" style="background:#fff; border:1px solid var(--primary); color:var(--primary);">🖨️ Imprimir</button>
@@ -221,7 +235,6 @@
     </div>
   </div>
 
-  <!-- ÁREAS DE IMPRESIÓN -->
   <div id="print-area" class="print-only"></div>
   <div id="print-home-area" class="print-only"></div>
   

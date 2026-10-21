@@ -85,3 +85,6 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24p
 .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: white; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; opacity: 0; transition: 0.3s; z-index: 1000; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.error { background: var(--danger); }
+#lista-sesiones .sesion-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+#lista-sesiones .sesion-item.bloqueada { opacity: 0.5; }
+#lista-sesiones .sesion-item.completada { color: var(--primary); font-weight: 700; }

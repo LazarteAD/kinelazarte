@@ -1,4 +1,4 @@
-const API_URL = "TU_URL_AQUI"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbyErK_S5Wb5EmAkq6QPwnNqPZ9wL2LZS2lwEgR1aYDI5C_eEEVhT-8CGIJN34drhncr/exec"; 
 let chartInstance = null;
 let calendar = null;
 

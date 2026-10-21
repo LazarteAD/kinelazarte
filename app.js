@@ -1,4 +1,5 @@
-const API_URL = "TU_URL_AQUI"; 
+// ⚠️ CONFIGURACIÓN: PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ (termina en /exec)
+const API_URL = "https://script.google.com/macros/s/AKfycbwNXq1wyc1dbh1G5_e0R7FNNd4jCA6siLJclGVd3SGUnTaEdEEgZTb8AzII7DoK2ZOg/exec"; 
 let chartInstance = null;
 let calendar = null;
 
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
       option.value = key; option.textContent = DB[key].nombre; select.appendChild(option);
     }
   }
+  checkPendingSync();
 });
 
 function showView(viewId) {
@@ -34,21 +36,49 @@ function showView(viewId) {
   window.scrollTo(0, 0);
 }
 
+// --- LOGIN Y SINCRONIZACIÓN ---
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function login() {
   const email = document.getElementById('login-email').value.trim();
-  if (!email) return showToast('Ingresa tu email', true);
-  state.user = { email };
+  const password = document.getElementById('login-password').value.trim();
+  if (!email || !password) return showToast('Completa email y contraseña', true);
   
+  const hash = await hashPassword(password);
+  const storedHash = localStorage.getItem('kf_auth_' + email);
+  if (storedHash && storedHash !== hash) return showToast('Contraseña incorrecta', true);
+  if (!storedHash) localStorage.setItem('kf_auth_' + email, hash);
+
+  state.user = { email };
   const localP = localStorage.getItem('kf_patients_' + email);
   if (localP) state.patients = JSON.parse(localP);
-  
   const localT = localStorage.getItem('kf_turnos_' + email);
   if (localT) state.turnos = JSON.parse(localT);
 
   showView('dashboard-view');
   renderPatientList();
+  syncPendingData(); // Intentar sincronizar datos offline
 }
 
+function checkPendingSync() {
+  window.addEventListener('online', () => {
+    document.getElementById('sync-status').textContent = 'Online';
+    document.getElementById('sync-status').classList.add('online');
+    syncPendingData();
+  });
+  window.addEventListener('offline', () => {
+    document.getElementById('sync-status').textContent = 'Offline';
+    document.getElementById('sync-status').classList.remove('online');
+  });
+}
+
+// --- PACIENTES ---
 function createPatient() {
   const name = document.getElementById('new-patient-name').value.trim();
   const phone = document.getElementById('new-patient-phone').value.trim();
@@ -83,6 +113,7 @@ function createPatient() {
   showView('dashboard-view');
   renderPatientList();
   showToast('Paciente guardado');
+  queueForSync('savePaciente', newPatient); // Encolar para sincronización
 }
 
 function renderPatientList() {
@@ -118,6 +149,7 @@ function initCalendar() {
         state.turnos.push(turno);
         localStorage.setItem('kf_turnos_' + state.user.email, JSON.stringify(state.turnos));
         calendar.addEvent(turno);
+        queueForSync('saveTurno', turno); // Encolar para sincronización
       }
     },
     eventClick: function(info) {
@@ -260,10 +292,17 @@ function saveSession() {
   }
 
   localStorage.setItem('kf_patients_' + state.user.email, JSON.stringify(state.patients));
+  queueForSync('saveSesion', {
+    ...state.currentSession,
+    email_kine: state.user.email,
+    paciente_nombre: state.currentPatient.nombre,
+    patologia: state.currentPatient.patologia
+  });
   showView('dashboard-view');
   renderPatientList();
 }
 
+// --- EXPORTAR HISTORIA ---
 function exportarHistoria() {
   const p = state.currentPatient;
   const fecha = new Date().toLocaleDateString();
@@ -277,6 +316,7 @@ function exportarHistoria() {
   window.print();
 }
 
+// --- UTILIDADES Y SINCRONIZACIÓN ---
 function updateEva(type, val) { document.getElementById(`eva-${type}-val`).textContent = val; state.currentSession[`eva_${type}`] = parseInt(val); }
 function verMedia(nombre) {
   const modal = document.getElementById('media-modal');
@@ -297,3 +337,34 @@ function sendWhatsApp() {
   window.open(`https://wa.me/${state.currentPatient.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 function showToast(m, e=false) { const t=document.getElementById('toast'); t.textContent=m; t.className=`toast show ${e?'error':''}`; setTimeout(()=>t.className='toast', 3000); }
+
+// --- COLA DE SINCRONIZACIÓN ---
+function queueForSync(action, data) {
+  const queue = JSON.parse(localStorage.getItem('kf_sync_queue') || '[]');
+  queue.push({ action, data, timestamp: Date.now() });
+  localStorage.setItem('kf_sync_queue', JSON.stringify(queue));
+}
+
+async function syncPendingData() {
+  const queue = JSON.parse(localStorage.getItem('kf_sync_queue') || '[]');
+  if (queue.length === 0 || !API_URL || API_URL === "TU_URL_AQUI") return;
+
+  const remaining = [];
+  for (const item of queue) {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Evita CORS preflight
+        body: JSON.stringify({ action: item.action, ...item.data }),
+        redirect: 'follow'
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error('Fallo en el servidor');
+    } catch (error) {
+      console.error('Error al sincronizar:', error);
+      remaining.push(item); // Reencolar si falla
+    }
+  }
+  localStorage.setItem('kf_sync_queue', JSON.stringify(remaining));
+  if (remaining.length === 0) showToast('✅ Datos sincronizados');
+}

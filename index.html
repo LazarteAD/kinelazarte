@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#f0f4f8" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="KineFlow Clinical · Gestión clínica kinesiológica de élite. Historia clínica, evaluación postural, planificación de sesiones y evolución del paciente.">
   <title>KineFlow Clinical | Elite Center</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="assets/css/mejoras.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
@@ -65,7 +67,8 @@
 
       <div class="header-actions">
         <h2>Directorio de Pacientes</h2>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button onclick="window.location.href='evaluacion-postural.html'" class="btn-secondary" style="padding:10px 20px;">📸 Evaluación Postural</button>
           <button onclick="exportarTodoCSV()" class="btn-secondary" style="padding:10px 20px;">📥 Exportar CSV</button>
           <button onclick="showView('new-patient-view')" class="btn-primary" style="width:auto; padding:10px 20px;">+ Nuevo Paciente</button>
         </div>
@@ -160,7 +163,10 @@
       <div class="session-topbar">
         <button onclick="showView('dashboard-view'); renderPatientList(); renderAgendaHoy();" class="btn-icon">←</button>
         <h2 id="session-patient-name">Paciente</h2>
-        <button onclick="exportarHistoria()" class="btn-icon">🖨️</button>
+        <div style="display:flex; gap:6px;">
+          <button onclick="irAEvaluacionPostural()" class="btn-icon" title="Evaluación Postural">📸</button>
+          <button onclick="exportarHistoria()" class="btn-icon">🖨️</button>
+        </div>
       </div>
 
       <div class="tab-content">
@@ -292,5 +298,24 @@
   <div id="toast" class="toast hidden"></div>
   
   <script src="app.js"></script>
+
+  <!-- Integración con módulo de Evaluación Postural -->
+  <script>
+    /**
+     * Abre el módulo de fotogrametría en una pestaña nueva,
+     * pasando el nombre del paciente como query string para
+     * que se auto-complete en el formulario.
+     */
+    function irAEvaluacionPostural() {
+      var el = document.getElementById('session-patient-name');
+      var name = el ? el.textContent.trim() : '';
+      var url = 'evaluacion-postural.html';
+      // Ignorar el placeholder por defecto
+      if (name && name !== 'Paciente') {
+        url += '?paciente=' + encodeURIComponent(name);
+      }
+      window.open(url, '_blank', 'noopener');
+    }
+  </script>
 </body>
 </html>

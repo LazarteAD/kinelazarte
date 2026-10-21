@@ -3,7 +3,7 @@
 // ============================================================
 
 // ⚠️ PEGÁ TU URL DE GOOGLE APPS SCRIPT ACÁ (termina en /exec)
-const API_URL = "https://script.google.com/macros/s/AKfycbzWtIvnF0FNFZPsmV3l7daGp_vfYZPAUl87V_nPg55hy-rEWHqKQuOsU-QKIM2dQzW9/exec"; 
+const API_URL = "TU_URL_AQUI"; 
 
 let chartInstance = null;
 let calendar = null;
@@ -182,18 +182,21 @@ function mostrarPatologiasPaciente() {
         ${p.medicacionTexto ? `<div class="meds-box"><b>💊 ${p.medicacionTexto}</b></div>` : ''}
       </div>
       <h3 style="margin-top:20px;">Patologías</h3>`;
+      
   if (p.patologias.length === 0) html += `<p class="sub">No hay patologías.</p>`;
   else html += p.patologias.map(pat => {
-    const completadas = (p.sesionesCompletadas && p.sesionesCompletadas[pat]) || 0;
+    const completadas = parseInt((p.sesionesCompletadas && p.sesionesCompletadas[pat]) || 0, 10);
     return `<div style="padding:12px; background:rgba(255,255,255,0.4); border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-      <div onclick="iniciarSesion('${pat}')" style="flex:1; cursor:pointer;">
+      <div style="flex:1;">
         <b>${DB[pat] ? DB[pat].nombre : pat}</b>
         <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 0;">Sesión ${completadas}/10</p>
       </div>
-      <button onclick="event.stopPropagation(); eliminarPatologia('${pat}')" class="btn-delete" style="font-size:0.8rem;">🗑️</button>
+      <button onclick="iniciarSesion('${pat}')" class="btn-primary" style="width:auto; padding:8px 14px; font-size:0.85rem;">Iniciar</button>
+      <button onclick="eliminarPatologia('${pat}')" class="btn-delete" style="font-size:0.9rem; margin-left:8px;">🗑️</button>
     </div>`;
   }).join('');
-  html += `<button onclick="agregarPatologia()" class="btn-primary mt-2">+ Agregar otra patología</button></div></div>`;
+  
+  html += `<button onclick="agregarPatologia()" class="btn-secondary mt-2">+ Agregar otra patología</button></div></div>`;
   const temp = document.createElement('div');
   temp.innerHTML = html;
   document.body.appendChild(temp);
@@ -276,7 +279,7 @@ function actualizarResumenZonas() {
 function iniciarSesion(pat) {
   const p = state.currentPatient;
   const patData = DB[pat];
-  const completadas = (p.sesionesCompletadas && p.sesionesCompletadas[pat]) || 0;
+  const completadas = parseInt((p.sesionesCompletadas && p.sesionesCompletadas[pat]) || 0, 10);
   
   state.currentSession = { 
     n: completadas + 1, 
@@ -302,7 +305,7 @@ function iniciarSesion(pat) {
   
   document.getElementById('test-nombre').textContent = patData.test;
   document.getElementById('test-descripcion').textContent = patData.bib;
-  document.getElementById('test-visual').innerHTML = `<span>▶ Hacé clic en Ver Demostración</span>`;
+  document.getElementById('test-visual').innerHTML = `<span style="color:var(--text-muted); font-size:0.8rem;">▶ Hacé clic en Ver Demostración</span>`;
   
   let flagsHTML = '';
   if (p.banderasRojas && p.banderasRojas.length > 0) flagsHTML += `<div class="alert red">🚩 Banderas Rojas: ${p.banderasRojas.join(', ')}</div>`;
@@ -359,10 +362,10 @@ function iniciarSesion(pat) {
     });
   }
   
-  // 3. Pestaña Evolución
+  // 3. Pestaña Evolución (CORREGIDO CON <=)
   document.getElementById('lista-sesiones').innerHTML = SESIONES_PLAN.map(s => {
-    let estado = s.n < completadas ? '✅' : (s.n === completadas + 1 ? '▶️' : '🔒');
-    let clase = s.n < completadas ? 'completed' : (s.n > completadas + 1 ? 'locked' : 'current');
+    let estado = s.n <= completadas ? '✅' : (s.n === completadas + 1 ? '▶️' : '🔒');
+    let clase = s.n <= completadas ? 'completed' : (s.n > completadas + 1 ? 'locked' : 'current');
     return `<div class="session-plan-item ${clase}">
       <span>${estado} <b>Sesión ${s.n}:</b> ${s.fase}</span>
     </div>`;

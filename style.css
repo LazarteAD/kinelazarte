@@ -225,3 +225,34 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20p
   .print-list-home li { margin-bottom: 15px; }
 }
 .print-only { display: none; }
+/* ... (Mantén tus estilos anteriores y agrega estos al final) ... */
+
+/* Panel de tiempo total */
+#time-ejercicios, #time-agentes, #time-total {
+  font-family: monospace;
+}
+
+/* Scroll controlado en la lista de chips */
+#suggested-exercises {
+  max-height: 150px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* Botón de eliminar paciente */
+.btn-delete {
+  background: none;
+  color: var(--danger);
+  font-size: 1rem;
+  padding: 5px;
+  border: 1px solid var(--danger);
+  border-radius: 5px;
+}
+.btn-delete:hover {
+  background: var(--danger-bg);
+}
+
+/* Anamnesis editable */
+.anamnesis-card {
+  position: relative;
+}

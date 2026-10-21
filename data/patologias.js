@@ -1,3 +1,7 @@
+/* ============================================================
+   KINEFLOW CLINICAL - Base de Datos y Plan de Sesiones
+   ============================================================ */
+
 const AGENTES = {
   calor: { nombre: "Termoterapia (Calor)", dosis: "15-20 min", contraindica: ["cancer", "tvp", "infeccion", "sensib"] },
   frio: { nombre: "Crioterapia", dosis: "10-15 min", contraindica: ["sensib"] },

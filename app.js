@@ -869,3 +869,10 @@ async function syncPendingData() {
   localStorage.setItem('kf_sync_queue', JSON.stringify(remaining));
   if (remaining.length === 0) showToast('✅ Sincronizado');
 }
+function cerrarSesion() {
+  if (confirm('¿Querés cerrar sesión? Tus datos siguen guardados en la nube.')) {
+    localStorage.removeItem('kine_perfil_activo');
+    // Si tenés guardado el email de otra forma, limpialo también.
+    location.reload(); // Recarga la página y vuelve al login
+  }
+}

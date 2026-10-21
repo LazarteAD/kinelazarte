@@ -57,6 +57,7 @@ const DB = {
   epitrocleitis: { nombre: "Epitrocleitis", test: "Flexión resistida", bib: "Kapandji", agentes: [F,U,T], ejercicios: { consultorio: [ej("Movilidad de muñeca", 3, 10, "4 min", "30s"), ej("Isométrico de flexores", 3, 10, "3 min", "45s")], casa: [ej("Tareas livianas", 1, 1, "10 min", "0s"), ej("Agarre funcional", 3, 10, "4 min", "45s")] } },
   tunel_carpiano: { nombre: "Túnel carpiano", test: "Phalen", bib: "Kapandji, T.1", agentes: [F,T], ejercicios: { consultorio: [ej("Deslizamiento del mediano", 3, 10, "4 min", "30s"), ej("Fortalecimiento de pinza", 3, 12, "4 min", "45s")], casa: [ej("Adaptación ergonómica", 1, 1, "10 min", "0s"), ej("Prensión con pausas", 3, 10, "4 min", "45s")] } },
   dequervain: { nombre: "De Quervain", test: "Finkelstein", bib: "Kapandji", agentes: [F,U], ejercicios: { consultorio: [ej("Movilidad de pulgar", 3, 10, "4 min", "30s"), ej("Isométrico de pulgar", 3, 10, "3 min", "45s")], casa: [ej("Adaptación de agarre", 1, 1, "10 min", "0s"), ej("Pinza con masilla", 3, 10, "4 min", "45s")] } }
+};
    // ========== CONTINUACIÓN DB ==========
 Object.assign(DB, {
   // --- CADERA ---

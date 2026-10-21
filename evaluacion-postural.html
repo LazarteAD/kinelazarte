@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación Postural · KineLazarte</title>
+<style>
+  :root{
+    --primary:#0d6efd; --primary-dark:#0a58ca; --success:#198754;
+    --danger:#dc3545; --bg:#f5f7fa; --card:#fff; --text:#1f2937;
+    --muted:#6b7280; --border:#e5e7eb; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;
+       background:var(--bg);color:var(--text);line-height:1.5}
+  header{background:linear-gradient(135deg,#0d6efd,#0a58ca);color:#fff;
+         padding:1rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+  header h1{margin:0;font-size:1.15rem}
+  header a{color:#fff;text-decoration:none;font-weight:600;opacity:.9}
+  header a:hover{opacity:1;text-decoration:underline}
+  main{max-width:1280px;margin:0 auto;padding:1.5rem}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+        padding:1.25rem;margin-bottom:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .card h2{margin:0 0 1rem;font-size:1.05rem}
+  .row{display:flex;gap:1rem;flex-wrap:wrap}
+  .field{flex:1 1 200px;display:flex;flex-direction:column;gap:.35rem}
+  label{font-weight:600;font-size:.88rem}
+  input[type=text],input[type=date],select{
+    padding:.6rem .75rem;border:1px solid var(--border);border-radius:9px;
+    font:inherit;background:#fff;min-height:44px}
+  input:focus-visible,select:focus-visible,button:focus-visible{
+    outline:3px solid #93c5fd;outline-offset:2px}
+  button{padding:.55rem .9rem;border:none;border-radius:9px;font:inherit;
+         font-weight:600;cursor:pointer;background:var(--primary);color:#fff;
+         transition:background .15s;min-height:40px}
+  button:hover{background:var(--primary-dark)}
+  button.secondary{background:var(--muted)}
+  button.secondary:hover{background:#4b5563}
+  button.danger{background:var(--danger)}
+  button.success{background:var(--success)}
+  button.ghost{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+  button.ghost:hover{background:rgba(13,110,253,.08)}
+  button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .views-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+  .view{border:1px solid var(--border);border-radius:var(--radius);padding:.75rem;background:#fafbfc}
+  .view h3{margin:0 0 .5rem;font-size:.95rem}
+  .toolbar{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+  .toolbar button{padding:.35rem .6rem;font-size:.83rem;min-height:34px}
+  .canvas-wrap{position:relative;width:100%;aspect-ratio:3/4;background:
+    repeating-conic-gradient(#eef0f3 0% 25%,#fff 0% 50%) 50%/20px 20px;
+    border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .canvas-wrap canvas{max-width:100%;max-height:100%;touch-action:none;cursor:crosshair}
+  .canvas-wrap canvas:not([data-ready]){display:none}
+  .placeholder{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem}
+  .hidden{display:none!important}
+  .hint{font-size:.82rem;color:var(--muted)}
+  .actions{display:flex;gap:.5rem;flex-wrap:wrap}
+  .status{font-size:.9rem;margin-top:.75rem;min-height:1.2em}
+  .status.ok{color:var(--success);font-weight:600}
+  .status.err{color:var(--danger);font-weight:600}
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
+  @media(max-width:700px){.compare-grid{grid-template-columns:1fr}}
+  .compare-grid img{width:100%;border-radius:9px;border:1px solid var(--border)}
+  .compare-col h4{margin:.25rem 0;font-size:.9rem;text-align:center;color:var(--muted)}
+  details summary{cursor:pointer;font-weight:600;padding:.35rem 0}
+  ul.hint{margin:.5rem 0 0 1.1rem;padding:0}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">← Volver al inicio</a>
+  <h1>Evaluación Postural · Fotogrametría</h1>
+</header>
+<main>
+
+  <!-- 1. DATOS -->
+  <section class="card">
+    <h2>Datos de la evaluación</h2>
+    <div class="row">
+      <div class="field"><label for="paciente">Paciente</label>
+        <input type="text" id="paciente" placeholder="Nombre y apellido" autocomplete="off"></div>
+      <div class="field"><label for="fecha">Fecha</label>
+        <input type="date" id="fecha"></div>
+      <div class="field"><label for="dolor">EVA (0–10)</label>
+        <input type="text" id="dolor" placeholder="Ej: 6" inputmode="numeric"></div>
+    </div>
+    <details style="margin-top:1rem">
+      <summary>Protocolo de captura de fotos (recomendado)</summary>
+      <ul class="hint">
+        <li>Fondo liso y uniforme, sin objetos que distraigan.</li>
+        <li>Cámara a la altura de la mitad de la estatura, a ~3 m.</li>
+        <li>Vistas: frontal, lateral (perfil) y posterior.</li>
+        <li>Cuerpo ocupando ~70% del encuadre; manos y pies visibles.</li>
+        <li>Paciente descalzo, ropa ajustada o marcadores anatómicos visibles.</li>
+        <li>Buena iluminación, sin contraluz.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- 2. VISTAS -->
+  <section class="card">
+    <h2>Captura por vista</h2>
+    <div class="views-grid" id="viewsGrid">
+      <!-- las 3 vistas se generan por JS para no repetir markup -->
+    </div>
+  </section>
+
+  <!-- 3. GUARDAR -->
+  <section class="card">
+    <h2>Guardar y exportar</h2>
+    <div class="actions">
+      <button id="btnSave" class="success">💾 Guardar evaluación</button>
+      <button id="btnExport">⬇️ Exportar JSON</button>
+      <button id="btnPrint" class="secondary">🖨️ Imprimir</button>
+      <button id="btnClearAll" class="danger">🗑️ Reiniciar</button>
+    </div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <p class="hint" style="margin-top:.75rem">
+      ⚠️ Los datos se guardan en <code>localStorage</code> de este dispositivo.
+      Para uso clínico real y sincronización entre dispositivos, necesitarás un backend
+      (Firebase, Supabase o similar).
+    </p>
+  </section>
+
+  <!-- 4. COMPARAR -->
+  <section class="card">
+    <h2>Comparación entre fechas</h2>
+    <div class="row">
+      <div class="field"><label for="cmpPaciente">Paciente</label>
+        <input type="text" id="cmpPaciente" placeholder="Nombre exacto" autocomplete="off"></div>
+      <div class="field"><label for="cmpDateA">Fecha A</label>
+        <select id="cmpDateA"><option value="">—</option></select></div>
+      <div class="field"><label for="cmpDateB">Fecha B</label>
+        <select id="cmpDateB"><option value="">—</option></select></div>
+      <div class="field" style="align-self:flex-end">
+        <button id="btnCompare">Comparar</button></div>
+    </div>
+    <div id="compareResult" class="compare-grid"></div>
+  </section>
+
+</main>
+
+<script>
+(() => {
+  'use strict';
+  const PREFIX = 'kine:postural:';
+  const VIEWS = [
+    { id:'frontal',   label:'Vista Frontal'   },
+    { id:'lateral',   label:'Vista Lateral'   },
+    { id:'posterior', label:'Vista Posterior' },
+  ];
+
+  // -------- Estado por vista --------
+  const state = {};
+  VIEWS.forEach(v => state[v.id] = { img:null, strokes:[], drawing:false, mode:'draw' });
+
+  // -------- Render de las 3 vistas --------
+  const grid = document.getElementById('viewsGrid');
+  VIEWS.forEach(v => {
+    const div = document.createElement('div');
+    div.className = 'view';
+    div.dataset.view = v.id;
+    div.innerHTML = `
+      <h3>${v.label}</h3>
+      <div class="toolbar">
+        <button data-action="upload">📁 Subir</button>
+        <button data-action="camera">📷 Cámara</button>
+        <button data-action="draw" class="ghost">✏️ Dibujar</button>
+        <button data-action="clear" class="ghost">🗑️ Limpiar</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas></canvas>
+        <div class="placeholder">Sin imagen.<br>Usá "Subir" o "Cámara".</div>
+      </div>
+      <input type="file" accept="image/*" class="hidden file-input">
+      <input type="file" accept="image/*" capture="environment" class="hidden camera-input">
+    `;
+    grid.appendChild(div);
+  });
+
+  // -------- Init fecha --------
+  document.getElementById('fecha').valueAsDate = new Date();
+
+  // -------- Setup de cada vista --------
+  VIEWS.forEach(v => setupView(v.id));
+
+  function setupView(id) {
+    const el = document.querySelector(`.view[data-view="${id}"]`);
+    const canvas = el.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const placeholder = el.querySelector('.placeholder');
+    const fileInput = el.querySelector('.file-input');
+    const camInput  = el.querySelector('.camera-input');
+    const btnDraw   = el.querySelector('[data-action="draw"]');
+    const st = state[id];
+
+    // --- helpers ---
+    const redrawFull = () => {
+      if (!st.img) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(st.img, 0, 0, canvas.width, canvas.height);
+      st.strokes.forEach(drawStroke);
+    };
+    function drawStroke(s) {
+      if (s.points.length < 2) return;
+      ctx.save();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(s.points[0].x, s.points[0].y);
+      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+      ctx.stroke();
+      ctx.restore();
+    }
+    function resize() {
+      if (!st.img) return;
+      const ratio = st.img.width / st.img.height;
+      canvas.width  = 800;
+      canvas.height = Math.round(800 / ratio);
+      canvas.dataset.ready = '1';
+      placeholder.classList.add('hidden');
+      redrawFull();
+    }
+    function loadFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const im = new Image();
+        im.onload = () => {
+          st.img = im;
+          st.strokes = [];
+          resize();
+        };
+        im.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // --- botones ---
+    el.querySelector('[data-action="upload"]').onclick = () => fileInput.click();
+    el.querySelector('[data-action="camera"]').onclick = () => camInput.click();
+    btnDraw.onclick = () => {
+      st.mode = st.mode === 'draw' ? 'off' : 'draw';
+      btnDraw.classList.toggle('active', st.mode === 'draw');
+    };
+    el.querySelector('[data-action="clear"]').onclick = () => {
+      if (!st.img) return;
+      st.strokes = [];
+      redrawFull();
+    };
+    fileInput.onchange = e => loadFile(e.target.files[0]);
+    camInput.onchange  = e => loadFile(e.target.files[0]);
+
+    // --- dibujo ---
+    const pos = ev => {
+      const rect = canvas.getBoundingClientRect();
+      const src = ev.touches ? ev.touches[0] : ev;
+      return {
+        x: (src.clientX - rect.left) * canvas.width  / rect.width,
+        y: (src.clientY - rect.top)  * canvas.height / rect.height,
+      };
+    };
+    const start = ev => {
+      if (st.mode !== 'draw' || !st.img) return;
+      ev.preventDefault();
+      st.drawing = true;
+      st.strokes.push({ points:[pos(ev)] });
+      redrawFull();
+    };
+    const move = ev => {
+      if (!st.drawing) return;
+      ev.preventDefault();
+      const p = pos(ev);
+      const s = st.strokes[st.strokes.length - 1];
+      const last = s.points[s.points.length - 1];
+      s.points.push(p);
+      // dibujo incremental (más rápido que redraw total)
+      ctx.save();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      ctx.restore();
+    };
+    const end = () => { st.drawing = false; };
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', start, { passive:false });
+    canvas.addEventListener('touchmove',  move,  { passive:false });
+    canvas.addEventListener('touchend',   end);
+  }
+
+  // -------- Utilidades de guardado --------
+  const setStatus = (msg, type='') => {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status ' + type;
+  };
+
+  function saveEvaluation() {
+    const patient = document.getElementById('paciente').value.trim();
+    const date    = document.getElementById('fecha').value;
+    if (!patient || !date) return setStatus('Completá paciente y fecha.', 'err');
+    const viewsData = {};
+    let any = false;
+    VIEWS.forEach(v => {
+      const st = state[v.id];
+      if (!st.img) return;
+      const canvas = document.querySelector(`.view[data-view="${v.id}"] canvas`);
+      viewsData[v.id] = canvas.toDataURL('image/png');
+      any = true;
+    });
+    if (!any) return setStatus('Cargá al menos una foto.', 'err');
+
+    const payload = {
+      patient, date,
+      eva: document.getElementById('dolor').value,
+      views: viewsData,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(PREFIX + patient + ':' + date, JSON.stringify(payload));
+    setStatus(`✓ Guardado: ${patient} · ${date}`, 'ok');
+  }
+
+  document.getElementById('btnSave').onclick   = saveEvaluation;
+  document.getElementById('btnPrint').onclick  = () => window.print();
+
+  document.getElementById('btnExport').onclick = () => {
+    const patient = document.getElementById('paciente').value.trim();
+    const date    = document.getElementById('fecha').value;
+    if (!patient || !date) return setStatus('Completá paciente y fecha.', 'err');
+    const key = PREFIX + patient + ':' + date;
+    const raw = localStorage.getItem(key);
+    if (!raw) return setStatus('No hay evaluación guardada para exportar.', 'err');
+    const blob = new Blob([raw], { type:'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `postural-${patient.replace(/\s+/g,'_')}-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  document.getElementById('btnClearAll').onclick = () => {
+    if (!confirm('¿Reiniciar la evaluación actual? No borra lo guardado.')) return;
+    VIEWS.forEach(v => {
+      state[v.id] = { img:null, strokes:[], drawing:false, mode:'draw' };
+      const el = document.querySelector(`.view[data-view="${v.id}"]`);
+      const canvas = el.querySelector('canvas');
+      canvas.removeAttribute('data-ready');
+      canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+      el.querySelector('.placeholder').classList.remove('hidden');
+      el.querySelector('[data-action="draw"]').classList.remove('active');
+    });
+    setStatus('');
+  };
+
+  // -------- Comparación --------
+  function listDates(patient) {
+    if (!patient) return [];
+    const prefix = PREFIX + patient + ':';
+    const out = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) out.push(k.slice(prefix.length));
+    }
+    return out.sort();
+  }
+  function fillSelect(sel, dates) {
+    sel.innerHTML = '<option value="">—</option>' +
+      dates.map(d => `<option value="${d}">${d}</option>`).join('');
+  }
+
+  const cmpPaciente = document.getElementById('cmpPaciente');
+  const cmpA = document.getElementById('cmpDateA');
+  const cmpB = document.getElementById('cmpDateB');
+  cmpPaciente.addEventListener('input', () => {
+    const dates = listDates(cmpPaciente.value.trim());
+    fillSelect(cmpA, dates);
+    fillSelect(cmpB, dates);
+  });
+
+  document.getElementById('btnCompare').onclick = () => {
+    const p  = cmpPaciente.value.trim();
+    const dA = cmpA.value, dB = cmpB.value;
+    const box = document.getElementById('compareResult');
+    if (!p || !dA || !dB) { box.innerHTML = '<p class="hint">Elegí paciente y dos fechas.</p>'; return; }
+    const a = JSON.parse(localStorage.getItem(PREFIX + p + ':' + dA) || '{}');
+    const b = JSON.parse(localStorage.getItem(PREFIX + p + ':' + dB) || '{}');
+
+    box.innerHTML = VIEWS.map(v => `
+      <div class="compare-col">
+        <h4>${v.label}</h4>
+        <div class="compare-grid">
+          <div>
+            <h4>${dA}</h4>
+            ${a.views && a.views[v.id]
+              ? `<img src="${a.views[v.id]}" alt="A ${v.label}">`
+              : '<p class="hint">Sin foto</p>'}
+          </div>
+          <div>
+            <h4>${dB}</h4>
+            ${b.views && b.views[v.id]
+              ? `<img src="${b.views[v.id]}" alt="B ${v.label}">`
+              : '<p class="hint">Sin foto</p>'}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  };
+})();
+</script>
+</body>
+</html>

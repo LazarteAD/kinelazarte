@@ -16,6 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
       option.value = key; option.textContent = DB[key].nombre; select.appendChild(option);
     }
   }
+  // Setear fecha de hoy por defecto
+  const dateInput = document.getElementById('new-patient-date');
+  if (dateInput) dateInput.valueAsDate = new Date();
+
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
   updateOnlineStatus();
@@ -46,18 +50,41 @@ function login() {
 function createPatient() {
   const name = document.getElementById('new-patient-name').value.trim();
   const phone = document.getElementById('new-patient-phone').value.trim();
+  const date = document.getElementById('new-patient-date').value;
+  const age = document.getElementById('new-patient-age').value;
+  const weight = document.getElementById('new-patient-weight').value;
+  const height = document.getElementById('new-patient-height').value;
   const pathology = document.getElementById('new-patient-pathology').value;
-  const comorb = [...document.querySelectorAll('.comorb:checked')].map(c => c.value);
+  
+  const flags = [...document.querySelectorAll('.flag:checked')].map(c => c.value);
+  const meds = [...document.querySelectorAll('.med:checked')].map(c => c.value);
+
   if (!name || !phone) return showToast('Completa nombre y teléfono', true);
 
-  const newPatient = { id: Date.now().toString(), email_kine: state.user.email, nombre: name, telefono: phone, patologia: pathology, comorbilidades: comorb };
+  const newPatient = {
+    id: Date.now().toString(),
+    email_kine: state.user.email,
+    nombre: name,
+    telefono: phone,
+    fecha_ingreso: date,
+    edad: age,
+    peso: weight,
+    altura: height,
+    patologia: pathology,
+    banderas: flags,
+    medicacion: meds
+  };
+
   state.patients.push(newPatient);
-  
   fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'savePaciente', paciente: newPatient }) }).catch(() => showToast('Error de conexión.', true));
 
+  // Limpiar form
   document.getElementById('new-patient-name').value = '';
   document.getElementById('new-patient-phone').value = '';
-  document.querySelectorAll('.comorb').forEach(c => c.checked = false);
+  document.getElementById('new-patient-age').value = '';
+  document.getElementById('new-patient-weight').value = '';
+  document.getElementById('new-patient-height').value = '';
+  document.querySelectorAll('.flag, .med').forEach(c => c.checked = false);
   
   showView('dashboard-view');
   renderPatientList();
@@ -83,7 +110,7 @@ function renderPatientList() {
     const patName = DB[p.patologia] ? DB[p.patologia].nombre : p.patologia;
     return `<div class="patient-card" onclick="openSession(${index})">
       <div class="patient-avatar">${p.nombre.charAt(0).toUpperCase()}</div>
-      <div class="patient-info"><h3>${p.nombre}</h3><p>${patName}</p></div>
+      <div class="patient-info"><h3>${p.nombre}</h3><p>${patName} · ${p.edad} años</p></div>
     </div>`;
   }).join('');
 }
@@ -126,13 +153,18 @@ function openSession(patientIndex) {
   if (patData && patData.agentes) {
     patData.agentes.forEach(agentKey => {
       const agent = AGENTES[agentKey]; if (!agent) return;
+      
+      // Lógica de contraindicación con banderas y medicación
       let isContra = false;
-      if (agent.contraindica && state.currentPatient.comorbilidades) {
-        if (agent.contraindica.some(c => state.currentPatient.comorbilidades.includes(c))) isContra = true;
+      let motivo = '';
+      if (agent.contraindica && state.currentPatient.banderas) {
+        if (agent.contraindica.some(c => state.currentPatient.banderas.includes(c))) { isContra = true; motivo = 'Contraindicado por bandera roja'; }
       }
+      if (state.currentPatient.medicacion && state.currentPatient.medicacion.includes('anticoagulantes') && agentKey === 'manual') { isContra = true; motivo = 'Contraindicado por anticoagulantes'; }
+      
       const div = document.createElement('div');
       div.className = `agent-item ${isContra ? 'contra' : ''}`;
-      div.innerHTML = `<div><h4>${agent.nombre}</h4><small>${agent.dosis}</small>${isContra ? `<span class="agent-alert">⚠️ Contraindicado</span>` : ''}</div><label class="switch"><input type="checkbox" ${isContra ? 'disabled' : ''} onchange="toggleAgent('${agent.nombre}', this.checked)"><span class="slider"></span></label>`;
+      div.innerHTML = `<div><h4>${agent.nombre}</h4><small>${agent.dosis}</small>${isContra ? `<span class="agent-alert">⚠️ ${motivo}</span>` : ''}</div><label class="switch"><input type="checkbox" ${isContra ? 'disabled' : ''} onchange="toggleAgent('${agent.nombre}', this.checked)"><span class="slider"></span></label>`;
       agentContainer.appendChild(div);
     });
   }
@@ -155,15 +187,11 @@ function renderLists() {
     `).join('');
 }
 
-// --- REPRODUCTOR DE VIDEO INTEGRADO ---
 function verVideo(nombre) {
   const modal = document.getElementById('video-modal');
   document.getElementById('modal-title').textContent = nombre;
-  
-  // Usamos el buscador de YouTube embed. Busca el ejercicio exacto.
   const query = encodeURIComponent('ejercicio kinesiologia ' + nombre);
   const url = `https://www.youtube.com/embed?listType=search&list=${query}`;
-  
   document.getElementById('video-iframe').src = url;
   modal.classList.remove('hidden');
 }
@@ -173,17 +201,15 @@ function verTest() {
   const testName = patData.test;
   const modal = document.getElementById('video-modal');
   document.getElementById('modal-title').textContent = testName;
-  
   const query = encodeURIComponent('test kinesiologia ' + testName);
   const url = `https://www.youtube.com/embed?listType=search&list=${query}`;
-  
   document.getElementById('video-iframe').src = url;
   modal.classList.remove('hidden');
 }
 
 function closeModal() {
   document.getElementById('video-modal').classList.add('hidden');
-  document.getElementById('video-iframe').src = ''; // Detiene el video
+  document.getElementById('video-iframe').src = '';
 }
 
 function pasarACasa(index) { const ej = state.currentSession.consultorio[index]; state.currentSession.consultorio.splice(index, 1); state.currentSession.casa.push(ej); document.querySelectorAll('.chip').forEach(c => { if(c.textContent === ej) c.classList.remove('selected'); }); renderLists(); }
@@ -209,7 +235,6 @@ function sendWhatsApp() {
   let msg = `*Plan de Ejercicios - KineFlow* 🏠\n\n¡Hola ${state.currentPatient.nombre}! 👋\nAcá tenés la tarea de hoy:\n\n`;
   state.currentSession.casa.forEach((ej, i) => { 
     msg += `*${i+1}.* ${ej}\n`; 
-    // Link directo a YouTube para el paciente
     msg += `▶️ Video: https://www.youtube.com/results?search_query=${encodeURIComponent('ejercicio kinesiologia ' + ej)}\n\n`; 
   });
   msg += `_Cualquier duda, ¡escribime!_ 💪`;
